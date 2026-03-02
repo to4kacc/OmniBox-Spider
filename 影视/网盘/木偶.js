@@ -1,25 +1,25 @@
 // @name 玩偶系模板
 // 引入 OmniBox SDK
-const OmniBox = require("omnibox_sdk");  
+const OmniBox = require("omnibox_sdk");
 // 引入 cheerio(用于 HTML 解析)
 let cheerio;
 try {
   cheerio = require("cheerio");
 } catch (error) {
   throw new Error("cheerio 模块未找到,请先安装:npm install cheerio");
-}  
+}
 
 // ==================== 配置区域 ====================
-// 网站地址(可以通过环境变量配置，支持多个域名用;分割)
+// 网站地址(可以通过环境变量配置,支持多个域名用;分割)
 const WEB_SITE_CONFIG = process.env.WEB_SITE_MUOU || "https://www.muou.site;https://www.muou.asia;https://666.666291.xyz;";
 const WEB_SITES = WEB_SITE_CONFIG.split(';').map(url => url.trim()).filter(url => url);
 // 筛选配置
 const FILTERS = process.env.FILTERS_WOGG || "https://xget.xi-xu.me/gh/Silent1566/OmniBox-Spider/raw/refs/heads/main/%E9%85%8D%E7%BD%AE/%E7%AD%9B%E9%80%89/mogg.json";
-// 读取环境变量：支持多个网盘类型，用分号分割
+// 读取环境变量:支持多个网盘类型,用分号分割
 const DRIVE_TYPE_CONFIG = (process.env.DRIVE_TYPE_CONFIG || "quark;uc").split(';').map(t => t.trim()).filter(t => t);
-// 读取环境变量：线路名称和顺序，用分号分割
+// 读取环境变量:线路名称和顺序,用分号分割
 const SOURCE_NAMES_CONFIG = (process.env.SOURCE_NAMES_CONFIG || "本地代理;服务端代理;直连").split(';').map(s => s.trim()).filter(s => s);
-// ==================== 配置区域结束 ====================  
+// ==================== 配置区域结束 ====================
 
 if (WEB_SITES.length === 0) {
   throw new Error("WEB_SITE 配置不能为空");
@@ -29,20 +29,17 @@ OmniBox.log("info", `配置了 ${WEB_SITES.length} 个域名: ${WEB_SITES.join('
 
 /**
  * 带容灾的请求函数
- * @param {string} path - 请求路径（相对路径）
- * @param {Object} options - 请求选项
- * @returns {Promise<Object>} 返回响应对象，包含 response 和 baseUrl
  */
 async function requestWithFailover(path, options = {}) {
   let lastError = null;
-  
+
   for (let i = 0; i < WEB_SITES.length; i++) {
     const baseUrl = removeTrailingSlash(WEB_SITES[i]);
     const fullUrl = path.startsWith('http') ? path : baseUrl + path;
-    
+
     try {
       OmniBox.log("info", `尝试请求域名 ${i + 1}/${WEB_SITES.length}: ${fullUrl}`);
-      
+
       const response = await OmniBox.request(fullUrl, {
         method: "GET",
         headers: {
@@ -50,7 +47,7 @@ async function requestWithFailover(path, options = {}) {
         },
         ...options,
       });
-      
+
       if (response.statusCode === 200 && response.body) {
         OmniBox.log("info", `域名 ${baseUrl} 请求成功`);
         return { response, baseUrl };
@@ -61,29 +58,20 @@ async function requestWithFailover(path, options = {}) {
     } catch (error) {
       OmniBox.log("warn", `域名 ${baseUrl} 请求失败: ${error.message}`);
       lastError = error;
-      
-      // 如果不是最后一个域名，继续尝试下一个
+
       if (i < WEB_SITES.length - 1) {
         continue;
       }
     }
   }
-  
-  // 所有域名都失败
+
   throw lastError || new Error("所有域名请求均失败");
 }
 
-/**
- * 获取可用的基础 URL（用于构建完整图片链接等）
- * @returns {string} 第一个配置的域名
- */
 function getBaseUrl() {
   return removeTrailingSlash(WEB_SITES[0]);
 }
 
-/**
- * 筛选配置
- */
 async function getDynamicFilters() {
   const config = FILTERS;
   const defaultFilters = {};
@@ -101,16 +89,15 @@ async function getDynamicFilters() {
         if (response.statusCode === 200 && response.body) {
           const rawFilters = JSON.parse(response.body);
 
-          // 遍历过滤器对象，进行属性映射转换
           const formattedFilters = {};
           for (const typeId in rawFilters) {
             formattedFilters[typeId] = rawFilters[typeId].map(group => ({
               key: group.key,
-              name: group.n || group.name, // 将 n 转换为 name [1]
+              name: group.n || group.name,
               init: group.init,
               value: (group.v || group.value || []).map(item => ({
-                name: item.n || item.name, // 将子项的 n 转换为 name [1]
-                value: item.v || item.value // 将子项的 v 转换为 value [1]
+                name: item.n || item.name,
+                value: item.v || item.value
               }))
             }));
           }
@@ -130,74 +117,61 @@ async function getDynamicFilters() {
   return defaultFilters;
 }
 
-/**
- * 移除 URL 末尾的斜杠
- * @param {string} url - URL 字符串
- * @returns {string} 处理后的 URL
- */
 function removeTrailingSlash(url) {
   if (!url) return "";
   return url.replace(/\/+$/, "");
-}  
+}
 
-/**
- * 判断是否为视频文件
- * @param {Object} file - 文件对象
- * @returns {boolean} 是否为视频文件
- */
 function isVideoFile(file) {
   if (!file || !file.file_name) {
     return false;
-  }  
-  
+  }
+
   const fileName = file.file_name.toLowerCase();
-  const videoExtensions = [".mp4", ".mkv", ".avi", ".flv", ".mov", ".wmv", ".m3u8", ".ts", ".webm", ".m4v"];  
-  
+  const videoExtensions = [".mp4", ".mkv", ".avi", ".flv", ".mov", ".wmv", ".m3u8", ".ts", ".webm", ".m4v"];
+
   for (const ext of videoExtensions) {
     if (fileName.endsWith(ext)) {
       return true;
     }
-  }  
-  
+  }
+
   if (file.format_type) {
     const formatType = String(file.format_type).toLowerCase();
     if (formatType.includes("video") || formatType.includes("mpeg") || formatType.includes("h264")) {
       return true;
     }
-  }  
-  
-  return false;
-}  
+  }
 
-/**
- * 递归获取所有视频文件
- */
+  return false;
+}
+
 async function getAllVideoFiles(shareURL, files, errors = []) {
   if (!files || !Array.isArray(files)) {
     return [];
-  }  
-  
+  }
+
   const tasks = files.map(async (file) => {
     if (file.file && isVideoFile(file)) {
       return [file];
     } else if (file.dir) {
-      const startTime = performance.now();  
-      
+      const startTime = performance.now();
+
       try {
         const subFileList = await OmniBox.getDriveFileList(shareURL, file.fid);
         const endTime = performance.now();
-        const duration = (endTime - startTime).toFixed(2);  
-        
-        OmniBox.log("info", `获取目录 [${file.name || file.fid}] 耗时: ${duration}ms`);  
-        
+        const duration = (endTime - startTime).toFixed(2);
+
+        OmniBox.log("info", `获取目录 [${file.name || file.fid}] 耗时: ${duration}ms`);
+
         if (subFileList?.files && Array.isArray(subFileList.files)) {
           return await getAllVideoFiles(shareURL, subFileList.files, errors);
         }
         return [];
       } catch (error) {
         const endTime = performance.now();
-        const duration = (endTime - startTime).toFixed(2);  
-        
+        const duration = (endTime - startTime).toFixed(2);
+
         const errorInfo = {
           path: file.name || file.fid,
           fid: file.fid,
@@ -211,64 +185,56 @@ async function getAllVideoFiles(shareURL, files, errors = []) {
       }
     }
     return [];
-  });  
-  
+  });
+
   const results = await Promise.all(tasks);
   return results.flat();
-}  
+}
 
-/**
- * 格式化文件大小
- */
 function formatFileSize(size) {
   if (!size || size <= 0) {
     return "";
-  }  
-  
+  }
+
   const unit = 1024;
-  const units = ["B", "K", "M", "G", "T", "P"];  
-  
+  const units = ["B", "K", "M", "G", "T", "P"];
+
   if (size < unit) {
     return `${size}B`;
-  }  
-  
+  }
+
   let exp = 0;
   let sizeFloat = size;
   while (sizeFloat >= unit && exp < units.length - 1) {
     sizeFloat /= unit;
     exp++;
-  }  
-  
+  }
+
   if (sizeFloat === Math.floor(sizeFloat)) {
     return `${Math.floor(sizeFloat)}${units[exp]}`;
   }
   return `${sizeFloat.toFixed(2)}${units[exp]}`;
-}  
+}
 
-/**
- * 获取首页数据
- */
 async function home(params) {
   try {
-    OmniBox.log("info", "获取首页数据");  
-    
+    OmniBox.log("info", "获取首页数据");
+
     let classes = [];
-    let list = [];  
-    
+    let list = [];
+
     try {
-      // 使用容灾请求
       const { response, baseUrl } = await requestWithFailover('/');
-      
+
       if (response.statusCode === 200 && response.body) {
         const $ = cheerio.load(response.body);
-        
-        // 从导航菜单中提取分类
+
         const tabItems = $(".module-tab-items .module-tab-item");
         tabItems.each((_, element) => {
           const $item = $(element);
           const typeId = $item.attr("data-id");
           const typeName = $item.attr("data-name");
-          
+
           if (typeId && typeId !== "0" && typeName) {
             classes.push({
               type_id: typeId,
@@ -276,28 +242,27 @@ async function home(params) {
             });
           }
         });
-        
+
         OmniBox.log("info", `从首页导航提取到 ${classes.length} 个分类`);
-        
-        // 提取首页影片列表
+
         const firstModule = $(".module").first();
-        
+
         if (firstModule.length > 0) {
           const moduleItems = firstModule.find(".module-item");
-          
+
           moduleItems.each((_, element) => {
             const $item = $(element);
             const href = $item.find(".module-item-pic a").attr("href") || $item.find(".module-item-title").attr("href");
             const vodName = $item.find(".module-item-pic img").attr("alt") || $item.find(".module-item-title").attr("title") || $item.find(".module-item-title").text().trim();
-            
+
             let vodPic = $item.find(".module-item-pic img").attr("data-src") || $item.find(".module-item-pic img").attr("src");
             if (vodPic && !vodPic.startsWith("http://") && !vodPic.startsWith("https://")) {
               vodPic = baseUrl + vodPic;
             }
-            
+
             const vodRemarks = $item.find(".module-item-text").text().trim();
             const vodYear = $item.find(".module-item-caption span").first().text().trim();
-            
+
             if (href && vodName) {
               list.push({
                 vod_id: href,
@@ -310,36 +275,33 @@ async function home(params) {
               });
             }
           });
-          
+
           OmniBox.log("info", `从首页提取到 ${list.length} 个影片`);
         }
       }
     } catch (error) {
       OmniBox.log("warn", `从首页提取数据失败: ${error.message}`);
     }
-    
+
     const currentFilters = await getDynamicFilters();
     return {
       class: classes,
       list: list,
-      filters: currentFilters, // 使用动态获取的过滤器 [1]
+      filters: currentFilters,
     };
   } catch (error) {
     OmniBox.log("error", `获取首页数据失败: ${error.message}`);
   }
-}  
+}
 
-/**
- * 获取分类数据
- */
 async function category(params) {
   try {
     const categoryId = params.categoryId || params.type_id || "";
     const page = parseInt(params.page || "1", 10);
-    const filters = params.filters || {};  
-    
-    OmniBox.log("info", `获取分类数据: categoryId=${categoryId}, page=${page}`);  
-    
+    const filters = params.filters || {};
+
+    OmniBox.log("info", `获取分类数据: categoryId=${categoryId}, page=${page}`);
+
     if (!categoryId) {
       OmniBox.log("warn", "分类ID为空");
       return {
@@ -348,9 +310,8 @@ async function category(params) {
         pagecount: 0,
         total: 0,
       };
-    }  
-    
-    // 构建请求 URL
+    }
+
     let url = '/index.php/vod/show';
     if (filters.area) {
       url += `/area/${filters.area}`;
@@ -375,10 +336,9 @@ async function category(params) {
     } else {
       url += `/id/${categoryId}/page/${page}.html`;
     }
-    
-    // 使用容灾请求
+
     const { response, baseUrl } = await requestWithFailover(url);
-    
+
     if (response.statusCode !== 200 || !response.body) {
       OmniBox.log("error", `请求失败: HTTP ${response.statusCode}`);
       return {
@@ -387,12 +347,11 @@ async function category(params) {
         pagecount: 0,
         total: 0,
       };
-    }  
-    
-    // 解析 HTML
+    }
+
     const $ = cheerio.load(response.body);
-    const videos = [];  
-    
+    const videos = [];
+
     const vodItems = $("#main .module-item");
     vodItems.each((_, e) => {
       const $item = $(e);
@@ -403,8 +362,8 @@ async function category(params) {
         vodPic = baseUrl + vodPic;
       }
       const vodRemarks = $item.find(".module-item-text").text();
-      const vodYear = $item.find(".module-item-caption span").first().text();  
-      
+      const vodYear = $item.find(".module-item-caption span").first().text();
+
       if (href && vodName) {
         videos.push({
           vod_id: href,
@@ -416,10 +375,10 @@ async function category(params) {
           vod_year: vodYear || "",
         });
       }
-    });  
-    
-    OmniBox.log("info", `解析完成,找到 ${videos.length} 个视频`);  
-    
+    });
+
+    OmniBox.log("info", `解析完成,找到 ${videos.length} 个视频`);
+
     return {
       list: videos,
       page: page,
@@ -435,26 +394,16 @@ async function category(params) {
       total: 0,
     };
   }
-}  
+}
 
-/**
- * 构建刮削后的文件名
- * @param {Object} scrapeData - TMDB刮削数据
- * @param {Object} mapping - 视频映射关系
- * @param {string} originalFileName - 原始文件名
- * @returns {string} 刮削后的文件名
- */
 function buildScrapedFileName(scrapeData, mapping, originalFileName) {
-  // 如果无法解析集号(EpisodeNumber == 0)或置信度很低(< 0.5),使用原始文件名
   if (!mapping || mapping.episodeNumber === 0 || (mapping.confidence && mapping.confidence < 0.5)) {
     return originalFileName;
   }
 
-  // 查找对应的剧集信息
   if (scrapeData && scrapeData.episodes && Array.isArray(scrapeData.episodes)) {
     for (const episode of scrapeData.episodes) {
       if (episode.episodeNumber === mapping.episodeNumber && episode.seasonNumber === mapping.seasonNumber) {
-        // 使用剧集标题作为文件名
         if (episode.name) {
           return `${episode.episodeNumber}.${episode.name}`;
         }
@@ -463,13 +412,9 @@ function buildScrapedFileName(scrapeData, mapping, originalFileName) {
     }
   }
 
-  // 如果没有找到对应的剧集信息,返回原始文件名
   return originalFileName;
 }
 
-/**
- * 获取视频详情
- */
 async function detail(params) {
   try {
     const videoId = params.videoId || "";
@@ -481,24 +426,20 @@ async function detail(params) {
     const source = params.source || "";
     OmniBox.log("info", `获取视频详情: videoId=${videoId}, source=${source}`);
 
-    // 使用容灾请求
     const { response, baseUrl } = await requestWithFailover(videoId);
 
     if (response.statusCode !== 200 || !response.body) {
       throw new Error(`请求失败: HTTP ${response.statusCode}`);
     }
 
-    // 解析 HTML
     const $ = cheerio.load(response.body);
 
-    // 获取基本信息
     let vodName = $(".page-title")[0]?.children?.[0]?.data || "";
     let vodPic = $($(".mobile-play")).find(".lazyload")[0]?.attribs?.["data-src"] || "";
     if (vodPic && !vodPic.startsWith("http://") && !vodPic.startsWith("https://")) {
       vodPic = baseUrl + vodPic;
     }
 
-    // 获取详细信息
     let vodYear = "";
     let vodDirector = "";
     let vodActor = "";
@@ -526,7 +467,6 @@ async function detail(params) {
       }
     }
 
-    // 获取网盘链接列表
     const panUrls = [];
     const items = $(".module-row-info");
     for (const item of items) {
@@ -538,7 +478,6 @@ async function detail(params) {
 
     OmniBox.log("info", `解析完成,找到 ${panUrls.length} 个网盘链接`);
 
-    // 构建播放源
     const playSources = [];
 
     const driveTypeCountMap = {};
@@ -550,7 +489,8 @@ async function detail(params) {
 
     const driveTypeCurrentIndexMap = {};
 
-    for (const shareURL of panUrls) {
+    // ==================== 并行处理网盘链接 ====================
+    const panUrlTasks = panUrls.map(async (shareURL) => {
       try {
         OmniBox.log("info", `处理网盘链接: ${shareURL}`);
 
@@ -568,7 +508,7 @@ async function detail(params) {
         const fileList = await OmniBox.getDriveFileList(shareURL, "0");
         if (!fileList || !fileList.files || !Array.isArray(fileList.files)) {
           OmniBox.log("warn", `获取文件列表失败: ${shareURL}`);
-          continue;
+          return null;
         }
 
         OmniBox.log("info", `获取文件列表成功,文件数量: ${fileList.files.length}`);
@@ -577,19 +517,18 @@ async function detail(params) {
 
         if (allVideoFiles.length === 0) {
           OmniBox.log("warn", `未找到视频文件: ${shareURL}`);
-          continue;
+          return null;
         }
 
         OmniBox.log("info", `递归获取视频文件完成,视频文件数量: ${allVideoFiles.length}`);
 
-        // ==================== 新增：执行刮削处理 ====================
+        // 刮削处理
         let scrapingSuccess = false;
         const sourceId = `spider_source_${await OmniBox.getSourceId()}_${shareURL}`;
-        
+
         try {
           OmniBox.log("info", `开始执行刮削处理,资源名: ${vodName}, 视频文件数: ${allVideoFiles.length}`);
 
-          // 将文件ID转换为 ${shareURL}|${fileId} 格式,用于刮削SDK
           const videoFilesForScraping = allVideoFiles.map((file) => {
             const fileId = file.fid || file.file_id || "";
             const formattedFileId = fileId ? `${shareURL}|${fileId}` : fileId;
@@ -602,7 +541,6 @@ async function detail(params) {
 
           OmniBox.log("info", `文件ID格式转换完成,示例: ${videoFilesForScraping[0]?.fid || "N/A"}`);
 
-          // 使用通用刮削API
           const scrapingResult = await OmniBox.processScraping(sourceId, vodName, vodName, videoFilesForScraping);
           OmniBox.log("info", `刮削处理完成,结果: ${JSON.stringify(scrapingResult).substring(0, 200)}`);
           scrapingSuccess = true;
@@ -617,7 +555,7 @@ async function detail(params) {
         let scrapeData = null;
         let videoMappings = [];
         let scrapeType = "";
-        
+
         try {
           OmniBox.log("info", `开始获取元数据,resourceId: ${sourceId}`);
           const metadata = await OmniBox.getScrapeMetadata(sourceId);
@@ -638,180 +576,189 @@ async function detail(params) {
             OmniBox.log("error", `获取元数据错误堆栈: ${error.stack}`);
           }
         }
-        // ==================== 刮削处理结束 ====================
 
-        let sourceNames = [displayName];
-        // 读取环境变量：支持多个网盘类型，用分号分割
-        const targetDriveTypes = DRIVE_TYPE_CONFIG;
-        // 读取环境变量：线路名称，用分号分割
-        const configSourceNames = SOURCE_NAMES_CONFIG;
+        return {
+          shareURL,
+          displayName,
+          driveInfo,
+          allVideoFiles,
+          scrapeData,
+          videoMappings,
+          scrapeType,
+          sourceId
+        };
 
-        // 修改判断逻辑：检查当前网盘类型是否在配置列表中 [1]
-        if (targetDriveTypes.includes(driveInfo.driveType)) {
-          sourceNames = [...configSourceNames]; // 使用环境变量定义的线路
-          OmniBox.log("info", `${displayName} 匹配成功，线路设置为: ${sourceNames.join(", ")}`);
+      } catch (error) {
+        OmniBox.log("error", `处理网盘链接失败: ${shareURL}, 错误: ${error.message}`);
+        return null;
+      }
+    });
 
-          if (source === "web") {
-            // 如果是网页端，过滤掉“本地代理”线路 [1]
-            sourceNames = sourceNames.filter((name) => name !== "本地代理");
-            OmniBox.log("info", `来源为网页端，已过滤线路`);
+    // 等待所有网盘链接并行处理完成
+    const panUrlResults = await Promise.all(panUrlTasks);
+
+    // 处理结果并构建播放源
+    for (const result of panUrlResults) {
+      if (!result) continue;
+
+      const { shareURL, displayName, driveInfo, allVideoFiles, scrapeData, videoMappings, scrapeType } = result;
+
+      let sourceNames = [displayName];
+      const targetDriveTypes = DRIVE_TYPE_CONFIG;
+      const configSourceNames = SOURCE_NAMES_CONFIG;
+
+      if (targetDriveTypes.includes(driveInfo.driveType)) {
+        sourceNames = [...configSourceNames];
+        OmniBox.log("info", `${displayName} 匹配成功,线路设置为: ${sourceNames.join(", ")}`);
+
+        if (source === "web") {
+          sourceNames = sourceNames.filter((name) => name !== "本地代理");
+          OmniBox.log("info", `来源为网页端,已过滤线路`);
+        }
+      }
+
+      for (const sourceName of sourceNames) {
+        const episodes = [];
+        for (const file of allVideoFiles) {
+          let fileName = file.file_name || "";
+          const fileId = file.fid || "";
+          const fileSize = file.size || file.file_size || 0;
+
+          if (!fileName || !fileId) {
+            continue;
           }
+
+          const formattedFileId = fileId ? `${shareURL}|${fileId}` : "";
+
+          let matchedMapping = null;
+          if (scrapeData && videoMappings && Array.isArray(videoMappings) && videoMappings.length > 0) {
+            for (const mapping of videoMappings) {
+              if (mapping && mapping.fileId === formattedFileId) {
+                matchedMapping = mapping;
+                const newFileName = buildScrapedFileName(scrapeData, mapping, fileName);
+                if (newFileName && newFileName !== fileName) {
+                  fileName = newFileName;
+                  OmniBox.log("info", `应用刮削文件名: ${file.file_name} -> ${fileName}`);
+                }
+                break;
+              }
+            }
+          }
+
+          let displayFileName = fileName;
+          if (fileSize > 0) {
+            const fileSizeStr = formatFileSize(fileSize);
+            if (fileSizeStr) {
+              displayFileName = `[${fileSizeStr}] ${fileName}`;
+            }
+          }
+
+          const episode = {
+            name: displayFileName,
+            playId: `${shareURL}|${fileId}`,
+            size: fileSize > 0 ? fileSize : undefined,
+          };
+
+          if (matchedMapping) {
+            if (matchedMapping.seasonNumber !== undefined && matchedMapping.seasonNumber !== null) {
+              episode._seasonNumber = matchedMapping.seasonNumber;
+            }
+            if (matchedMapping.episodeNumber !== undefined && matchedMapping.episodeNumber !== null) {
+              episode._episodeNumber = matchedMapping.episodeNumber;
+            }
+            if (matchedMapping.episodeName) {
+              episode.episodeName = matchedMapping.episodeName;
+            }
+            if (matchedMapping.episodeOverview) {
+              episode.episodeOverview = matchedMapping.episodeOverview;
+            }
+            if (matchedMapping.episodeAirDate) {
+              episode.episodeAirDate = matchedMapping.episodeAirDate;
+            }
+            if (matchedMapping.episodeStillPath) {
+              episode.episodeStillPath = matchedMapping.episodeStillPath;
+            }
+            if (matchedMapping.episodeVoteAverage !== undefined && matchedMapping.episodeVoteAverage !== null) {
+              episode.episodeVoteAverage = matchedMapping.episodeVoteAverage;
+            }
+            if (matchedMapping.episodeRuntime !== undefined && matchedMapping.episodeRuntime !== null) {
+              episode.episodeRuntime = matchedMapping.episodeRuntime;
+            }
+          }
+
+          episodes.push(episode);
         }
 
-        for (const sourceName of sourceNames) {
-          const episodes = [];
-          for (const file of allVideoFiles) {
-            let fileName = file.file_name || "";
-            const fileId = file.fid || "";
-            const fileSize = file.size || file.file_size || 0;
-
-            if (!fileName || !fileId) {
-              continue;
-            }
-
-            // ==================== 新增：应用刮削文件名 ====================
-            const formattedFileId = fileId ? `${shareURL}|${fileId}` : "";
-            
-            let matchedMapping = null;
-            if (scrapeData && videoMappings && Array.isArray(videoMappings) && videoMappings.length > 0) {
-              for (const mapping of videoMappings) {
-                if (mapping && mapping.fileId === formattedFileId) {
-                  matchedMapping = mapping;
-                  const newFileName = buildScrapedFileName(scrapeData, mapping, fileName);
-                  if (newFileName && newFileName !== fileName) {
-                    fileName = newFileName;
-                    OmniBox.log("info", `应用刮削文件名: ${file.file_name} -> ${fileName}`);
-                  }
-                  break;
-                }
+        if (scrapeData && episodes.length > 0) {
+          const hasEpisodeNumber = episodes.some((ep) => ep._episodeNumber !== undefined);
+          if (hasEpisodeNumber) {
+            OmniBox.log("info", `检测到刮削数据,按 episodeNumber 排序剧集列表,共 ${episodes.length} 集`);
+            episodes.sort((a, b) => {
+              const seasonA = a._seasonNumber !== undefined ? a._seasonNumber : 0;
+              const seasonB = b._seasonNumber !== undefined ? b._seasonNumber : 0;
+              if (seasonA !== seasonB) {
+                return seasonA - seasonB;
               }
-            }
-            // ==================== 刮削文件名应用结束 ====================
-
-            let displayFileName = fileName;
-            if (fileSize > 0) {
-              const fileSizeStr = formatFileSize(fileSize);
-              if (fileSizeStr) {
-                displayFileName = `[${fileSizeStr}] ${fileName}`;
-              }
-            }
-
-            const episode = {
-              name: displayFileName,
-              playId: `${shareURL}|${fileId}`,
-              size: fileSize > 0 ? fileSize : undefined,
-            };
-
-            // ==================== 新增：添加TMDB信息 ====================
-            if (matchedMapping) {
-              if (matchedMapping.seasonNumber !== undefined && matchedMapping.seasonNumber !== null) {
-                episode._seasonNumber = matchedMapping.seasonNumber;
-              }
-              if (matchedMapping.episodeNumber !== undefined && matchedMapping.episodeNumber !== null) {
-                episode._episodeNumber = matchedMapping.episodeNumber;
-              }
-              if (matchedMapping.episodeName) {
-                episode.episodeName = matchedMapping.episodeName;
-              }
-              if (matchedMapping.episodeOverview) {
-                episode.episodeOverview = matchedMapping.episodeOverview;
-              }
-              if (matchedMapping.episodeAirDate) {
-                episode.episodeAirDate = matchedMapping.episodeAirDate;
-              }
-              if (matchedMapping.episodeStillPath) {
-                episode.episodeStillPath = matchedMapping.episodeStillPath;
-              }
-              if (matchedMapping.episodeVoteAverage !== undefined && matchedMapping.episodeVoteAverage !== null) {
-                episode.episodeVoteAverage = matchedMapping.episodeVoteAverage;
-              }
-              if (matchedMapping.episodeRuntime !== undefined && matchedMapping.episodeRuntime !== null) {
-                episode.episodeRuntime = matchedMapping.episodeRuntime;
-              }
-            }
-            // ==================== TMDB信息添加结束 ====================
-
-            episodes.push(episode);
-          }
-
-          // ==================== 新增：按集数排序 ====================
-          if (scrapeData && episodes.length > 0) {
-            const hasEpisodeNumber = episodes.some((ep) => ep._episodeNumber !== undefined);
-            if (hasEpisodeNumber) {
-              OmniBox.log("info", `检测到刮削数据,按 episodeNumber 排序剧集列表,共 ${episodes.length} 集`);
-              episodes.sort((a, b) => {
-                const seasonA = a._seasonNumber !== undefined ? a._seasonNumber : 0;
-                const seasonB = b._seasonNumber !== undefined ? b._seasonNumber : 0;
-                if (seasonA !== seasonB) {
-                  return seasonA - seasonB;
-                }
-                const episodeA = a._episodeNumber !== undefined ? a._episodeNumber : 0;
-                const episodeB = b._episodeNumber !== undefined ? b._episodeNumber : 0;
-                return episodeA - episodeB;
-              });
-            }
-          }
-          // ==================== 排序结束 ====================
-
-          if (episodes.length > 0) {
-            let finalSourceName = sourceName;
-            if (driveInfo.driveType === "quark") {
-              finalSourceName = `${displayName}-${sourceName}`;
-            }
-
-            playSources.push({
-              name: finalSourceName,
-              episodes: episodes,
+              const episodeA = a._episodeNumber !== undefined ? a._episodeNumber : 0;
+              const episodeB = b._episodeNumber !== undefined ? b._episodeNumber : 0;
+              return episodeA - episodeB;
             });
           }
         }
 
-        // ==================== 新增：使用刮削数据更新详情 ====================
-        if (scrapeData) {
-          if (scrapeData.title) {
-            vodName = scrapeData.title;
+        if (episodes.length > 0) {
+          let finalSourceName = sourceName;
+          if (driveInfo.driveType === "quark") {
+            finalSourceName = `${displayName}-${sourceName}`;
           }
-          if (scrapeData.posterPath) {
-            vodPic = `https://image.tmdb.org/t/p/w500${scrapeData.posterPath}`;
+
+          playSources.push({
+            name: finalSourceName,
+            episodes: episodes,
+          });
+        }
+      }
+
+      // 使用刮削数据更新详情
+      if (scrapeData) {
+        if (scrapeData.title) {
+          vodName = scrapeData.title;
+        }
+        if (scrapeData.posterPath) {
+          vodPic = `https://image.tmdb.org/t/p/w500${scrapeData.posterPath}`;
+        }
+        if (scrapeData.releaseDate) {
+          vodYear = scrapeData.releaseDate.substring(0, 4) || vodYear;
+        }
+        if (scrapeData.overview) {
+          vodContent = scrapeData.overview;
+        }
+
+        if (scrapeData.credits) {
+          if (scrapeData.credits.cast && Array.isArray(scrapeData.credits.cast)) {
+            const actors = scrapeData.credits.cast
+              .slice(0, 5)
+              .map((cast) => cast.name || "")
+              .filter((name) => name)
+              .join(",");
+            if (actors) {
+              vodActor = actors;
+            }
           }
-          if (scrapeData.releaseDate) {
-            vodYear = scrapeData.releaseDate.substring(0, 4) || vodYear;
-          }
-          if (scrapeData.overview) {
-            vodContent = scrapeData.overview;
-          }
-          
-          // 处理演员和导演信息
-          if (scrapeData.credits) {
-            if (scrapeData.credits.cast && Array.isArray(scrapeData.credits.cast)) {
-              const actors = scrapeData.credits.cast
-                .slice(0, 5)
-                .map((cast) => cast.name || "")
+          if (scrapeData.credits.crew && Array.isArray(scrapeData.credits.crew)) {
+            const directors = scrapeData.credits.crew.filter((crew) => crew.job === "Director" || crew.department === "Directing");
+            if (directors.length > 0) {
+              const directorNames = directors
+                .slice(0, 3)
+                .map((director) => director.name || "")
                 .filter((name) => name)
                 .join(",");
-              if (actors) {
-                vodActor = actors;
-              }
-            }
-            if (scrapeData.credits.crew && Array.isArray(scrapeData.credits.crew)) {
-              const directors = scrapeData.credits.crew.filter((crew) => crew.job === "Director" || crew.department === "Directing");
-              if (directors.length > 0) {
-                const directorNames = directors
-                  .slice(0, 3)
-                  .map((director) => director.name || "")
-                  .filter((name) => name)
-                  .join(",");
-                if (directorNames) {
-                  vodDirector = directorNames;
-                }
+              if (directorNames) {
+                vodDirector = directorNames;
               }
             }
           }
         }
-        // ==================== 刮削数据更新结束 ====================
-
-      } catch (error) {
-        OmniBox.log("error", `处理网盘链接失败: ${shareURL}, 错误: ${error.message}`);
       }
     }
 
@@ -840,16 +787,13 @@ async function detail(params) {
   }
 }
 
-/**
- * 搜索视频
- */
 async function search(params) {
   try {
     const keyword = params.keyword || "";
-    const page = parseInt(params.page || "1", 10);  
-    
-    OmniBox.log("info", `搜索视频: keyword=${keyword}, page=${page}`);  
-    
+    const page = parseInt(params.page || "1", 10);
+
+    OmniBox.log("info", `搜索视频: keyword=${keyword}, page=${page}`);
+
     if (!keyword) {
       OmniBox.log("warn", "搜索关键词为空");
       return {
@@ -858,12 +802,11 @@ async function search(params) {
         pagecount: 0,
         total: 0,
       };
-    }  
-    
-    // 使用容灾请求
+    }
+
     const searchPath = `/index.php/vod/search/page/${page}/wd/${keyword}.html`;
     const { response, baseUrl } = await requestWithFailover(searchPath);
-    
+
     if (response.statusCode !== 200 || !response.body) {
       OmniBox.log("error", `请求失败: HTTP ${response.statusCode}`);
       return {
@@ -872,18 +815,17 @@ async function search(params) {
         pagecount: 0,
         total: 0,
       };
-    }  
-    
-    // 解析 HTML
+    }
+
     const $ = cheerio.load(response.body);
-    const videos = [];  
-    
+    const videos = [];
+
     const items = $(".module-search-item");
     for (const item of items) {
       const $item = $(item);
       const videoSerial = $item.find(".video-serial")[0];
-      const vodPicImg = $item.find(".module-item-pic > img")[0];  
-      
+      const vodPicImg = $item.find(".module-item-pic > img")[0];
+
       if (videoSerial && videoSerial.attribs) {
         const vodId = videoSerial.attribs.href || "";
         const vodName = videoSerial.attribs.title || "";
@@ -891,8 +833,8 @@ async function search(params) {
         if (vodPic && !vodPic.startsWith("http://") && !vodPic.startsWith("https://")) {
           vodPic = baseUrl + vodPic;
         }
-        const vodRemarks = $($item.find(".video-serial")[0]).text() || "";  
-        
+        const vodRemarks = $($item.find(".video-serial")[0]).text() || "";
+
         if (vodId && vodName) {
           videos.push({
             vod_id: vodId,
@@ -904,10 +846,10 @@ async function search(params) {
           });
         }
       }
-    }  
-    
-    OmniBox.log("info", `搜索完成,找到 ${videos.length} 个结果`);  
-    
+    }
+
+    OmniBox.log("info", `搜索完成,找到 ${videos.length} 个结果`);
+
     return {
       list: videos,
       page: page,
@@ -923,11 +865,8 @@ async function search(params) {
       total: 0,
     };
   }
-}  
+}
 
-/**
- * 获取播放地址
- */
 async function play(params) {
   try {
     const flag = params.flag || "";
@@ -952,17 +891,16 @@ async function play(params) {
 
     OmniBox.log("info", `解析参数: shareURL=${shareURL}, fileId=${fileId}`);
 
-    // ==================== 修正：获取刮削元数据用于弹幕匹配 ====================
     let danmakuList = [];
     let scrapeTitle = "";
     let scrapePic = "";
     let episodeNumber = null;
     let episodeName = params.episodeName || "";
-    
+
     try {
       const sourceId = `spider_source_${await OmniBox.getSourceId()}_${shareURL}`;
       const metadata = await OmniBox.getScrapeMetadata(sourceId);
-      
+
       if (metadata && metadata.scrapeData && metadata.videoMappings) {
         const formattedFileId = fileId ? `${shareURL}|${fileId}` : "";
 
@@ -1014,10 +952,8 @@ async function play(params) {
     } catch (error) {
       OmniBox.log("warn", `弹幕匹配失败: ${error.message}`);
     }
-    // ==================== 弹幕匹配结束 ====================
 
-    // 从flag中提取线路类型
-    let routeType = "服务端代理";
+    let routeType = "直连";
     if (flag && flag.includes("-")) {
       const parts = flag.split("-");
       routeType = parts[parts.length - 1];
@@ -1031,7 +967,6 @@ async function play(params) {
       throw new Error("无法获取播放地址");
     }
 
-    // ==================== 新增：添加观看记录 ====================
     try {
       const sourceId = await OmniBox.getSourceId();
       if (sourceId) {
@@ -1058,7 +993,6 @@ async function play(params) {
     } catch (error) {
       OmniBox.log("warn", `添加观看记录失败: ${error.message}`);
     }
-    // ==================== 观看记录添加结束 ====================
 
     const urlList = playInfo.url || [];
 
@@ -1092,15 +1026,13 @@ async function play(params) {
   }
 }
 
-// 导出接口
 module.exports = {
   home,
   category,
   search,
   detail,
   play,
-};  
+};
 
-// 使用公共 runner 处理标准输入/输出
 const runner = require("spider_runner");
 runner.run(module.exports);
