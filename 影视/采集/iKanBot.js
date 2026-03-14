@@ -3,6 +3,7 @@
  * iKanBot资源 - OmniBox 爬虫脚本
  * ============================================================================
  */
+// @version 1.0.1
 const axios = require("axios");
 const cheerio = require("cheerio");
 const http = require("http");
@@ -521,11 +522,11 @@ async function detail(params) {
 
         if (scrapeCandidates.length > 0) {
             try {
-                const sourceId = `spider_source_${await OmniBox.getSourceId()}_${String(videoId || '')}`;
-                const scrapingResult = await OmniBox.processScraping(sourceId, title || '', title || '', scrapeCandidates);
+                const videoIdForScrape = String(videoId || '');
+                const scrapingResult = await OmniBox.processScraping(videoIdForScrape, title || '', title || '', scrapeCandidates);
                 OmniBox.log('info', `[iKanBot-DEBUG] 刮削处理完成,结果: ${JSON.stringify(scrapingResult || {}).substring(0, 200)}`);
 
-                const metadata = await OmniBox.getScrapeMetadata(sourceId);
+                const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
                 scrapeData = metadata?.scrapeData || null;
                 videoMappings = metadata?.videoMappings || [];
                 scrapeType = metadata?.scrapeType || '';
@@ -698,9 +699,8 @@ async function play(params) {
 
     try {
         const sourceVideoId = String(params.vodId || playMeta.sid || '');
-        const sourceId = sourceVideoId ? `spider_source_${await OmniBox.getSourceId()}_${sourceVideoId}` : '';
-        if (sourceId) {
-            const metadata = await OmniBox.getScrapeMetadata(sourceId);
+        if (sourceVideoId) {
+            const metadata = await OmniBox.getScrapeMetadata(sourceVideoId);
             if (metadata && metadata.scrapeData) {
                 const mapping = (metadata.videoMappings || []).find((m) => m?.fileId === playMeta?.fid);
                 scrapedDanmuFileName = buildScrapedDanmuFileName(

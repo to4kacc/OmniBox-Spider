@@ -271,44 +271,44 @@ async function home(params, context) {
           ],
         },
         // 年代筛选器
-         {
-           key: "year",
-           name: "年代",
-           init: "", // 默认值：全部（空字符串）
-           value: [
-             { name: "全部", value: "" },
-             { name: "2026", value: "2026" },
-             { name: "2025", value: "2025" },
-             { name: "2024", value: "2024" },
-             { name: "2023", value: "2023" },
-             { name: "2022", value: "2022" },
-             { name: "2021", value: "2021" },
-             { name: "2020", value: "2020" },
-             { name: "2019", value: "2019" },
-             { name: "2020年代", value: "2020年代" },
-             { name: "2010年代", value: "2010年代" },
-             { name: "2000年代", value: "2000年代" },
-             { name: "90年代", value: "90年代" },
-             { name: "80年代", value: "80年代" },
-             { name: "70年代", value: "70年代" },
-             { name: "60年代", value: "60年代" },
-             { name: "更早", value: "更早" },
-           ],
-         },
-         // 排序筛选器
-         {
-           key: "sort",
-           name: "排序",
-           init: "U", // 默认值：热度
-           value: [
-             { name: "热度", value: "U" },
-             { name: "评分", value: "S" },
-             { name: "时间", value: "R" },
-           ],
-         },
-       ],
-       // 电视剧筛选的筛选器
-       tv_filter: [
+        {
+          key: "year",
+          name: "年代",
+          init: "", // 默认值：全部（空字符串）
+          value: [
+            { name: "全部", value: "" },
+            { name: "2026", value: "2026" },
+            { name: "2025", value: "2025" },
+            { name: "2024", value: "2024" },
+            { name: "2023", value: "2023" },
+            { name: "2022", value: "2022" },
+            { name: "2021", value: "2021" },
+            { name: "2020", value: "2020" },
+            { name: "2019", value: "2019" },
+            { name: "2020年代", value: "2020年代" },
+            { name: "2010年代", value: "2010年代" },
+            { name: "2000年代", value: "2000年代" },
+            { name: "90年代", value: "90年代" },
+            { name: "80年代", value: "80年代" },
+            { name: "70年代", value: "70年代" },
+            { name: "60年代", value: "60年代" },
+            { name: "更早", value: "更早" },
+          ],
+        },
+        // 排序筛选器
+        {
+          key: "sort",
+          name: "排序",
+          init: "U", // 默认值：热度
+          value: [
+            { name: "热度", value: "U" },
+            { name: "评分", value: "S" },
+            { name: "时间", value: "R" },
+          ],
+        },
+      ],
+      // 电视剧筛选的筛选器
+      tv_filter: [
         // 类型筛选器
         {
           key: "genre",
@@ -371,65 +371,65 @@ async function home(params, context) {
             { name: "澳大利亚", value: "澳大利亚" },
           ],
         },
-         // 年代筛选器
-         {
-           key: "year",
-           name: "年代",
-           init: "", // 默认值：全部（空字符串）
-           value: [
-             { name: "全部", value: "" },
-             { name: "2026", value: "2026" },
-             { name: "2025", value: "2025" },
-             { name: "2024", value: "2024" },
-             { name: "2023", value: "2023" },
-             { name: "2022", value: "2022" },
-             { name: "2021", value: "2021" },
-             { name: "2020", value: "2020" },
-             { name: "2019", value: "2019" },
-             { name: "2020年代", value: "2020年代" },
-             { name: "2010年代", value: "2010年代" },
-             { name: "2000年代", value: "2000年代" },
-             { name: "90年代", value: "90年代" },
-             { name: "80年代", value: "80年代" },
-             { name: "70年代", value: "70年代" },
-             { name: "60年代", value: "60年代" },
-             { name: "更早", value: "更早" },
-           ],
-         },
-         // 平台筛选器
-         {
-           key: "platform",
-           name: "平台",
-           init: "", // 默认值：全部（空字符串）
-           value: [
-             { name: "全部", value: "" },
-             { name: "腾讯视频", value: "腾讯视频" },
-             { name: "爱奇艺", value: "爱奇艺" },
-             { name: "优酷", value: "优酷" },
-             { name: "湖南卫视", value: "湖南卫视" },
-             { name: "Netflix", value: "Netflix" },
-             { name: "HBO", value: "HBO" },
-             { name: "BBC", value: "BBC" },
-             { name: "NHK", value: "NHK" },
-             { name: "CBS", value: "CBS" },
-             { name: "NBC", value: "NBC" },
-             { name: "tvN", value: "tvN" },
-           ],
-         },
-         // 排序筛选器
-         {
-           key: "sort",
-           name: "排序",
-           init: "U", // 默认值：热度
-           value: [
-             { name: "热度", value: "U" },
-             { name: "评分", value: "S" },
-             { name: "时间", value: "R" },
-           ],
-         },
-       ],
-       // 综艺筛选的筛选器
-       show_filter: [
+        // 年代筛选器
+        {
+          key: "year",
+          name: "年代",
+          init: "", // 默认值：全部（空字符串）
+          value: [
+            { name: "全部", value: "" },
+            { name: "2026", value: "2026" },
+            { name: "2025", value: "2025" },
+            { name: "2024", value: "2024" },
+            { name: "2023", value: "2023" },
+            { name: "2022", value: "2022" },
+            { name: "2021", value: "2021" },
+            { name: "2020", value: "2020" },
+            { name: "2019", value: "2019" },
+            { name: "2020年代", value: "2020年代" },
+            { name: "2010年代", value: "2010年代" },
+            { name: "2000年代", value: "2000年代" },
+            { name: "90年代", value: "90年代" },
+            { name: "80年代", value: "80年代" },
+            { name: "70年代", value: "70年代" },
+            { name: "60年代", value: "60年代" },
+            { name: "更早", value: "更早" },
+          ],
+        },
+        // 平台筛选器
+        {
+          key: "platform",
+          name: "平台",
+          init: "", // 默认值：全部（空字符串）
+          value: [
+            { name: "全部", value: "" },
+            { name: "腾讯视频", value: "腾讯视频" },
+            { name: "爱奇艺", value: "爱奇艺" },
+            { name: "优酷", value: "优酷" },
+            { name: "湖南卫视", value: "湖南卫视" },
+            { name: "Netflix", value: "Netflix" },
+            { name: "HBO", value: "HBO" },
+            { name: "BBC", value: "BBC" },
+            { name: "NHK", value: "NHK" },
+            { name: "CBS", value: "CBS" },
+            { name: "NBC", value: "NBC" },
+            { name: "tvN", value: "tvN" },
+          ],
+        },
+        // 排序筛选器
+        {
+          key: "sort",
+          name: "排序",
+          init: "U", // 默认值：热度
+          value: [
+            { name: "热度", value: "U" },
+            { name: "评分", value: "S" },
+            { name: "时间", value: "R" },
+          ],
+        },
+      ],
+      // 综艺筛选的筛选器
+      show_filter: [
         // 类型筛选器（只有4个选项）
         {
           key: "genre",
@@ -475,31 +475,31 @@ async function home(params, context) {
             { name: "澳大利亚", value: "澳大利亚" },
           ],
         },
-         // 年代筛选器（和电视剧筛选一样）
-         {
-           key: "year",
-           name: "年代",
-           init: "", // 默认值：全部（空字符串）
-           value: [
-             { name: "全部", value: "" },
-             { name: "2026", value: "2026" },
-             { name: "2025", value: "2025" },
-             { name: "2024", value: "2024" },
-             { name: "2023", value: "2023" },
-             { name: "2022", value: "2022" },
-             { name: "2021", value: "2021" },
-             { name: "2020", value: "2020" },
-             { name: "2019", value: "2019" },
-             { name: "2020年代", value: "2020年代" },
-             { name: "2010年代", value: "2010年代" },
-             { name: "2000年代", value: "2000年代" },
-             { name: "90年代", value: "90年代" },
-             { name: "80年代", value: "80年代" },
-             { name: "70年代", value: "70年代" },
-             { name: "60年代", value: "60年代" },
-             { name: "更早", value: "更早" },
-           ],
-         },
+        // 年代筛选器（和电视剧筛选一样）
+        {
+          key: "year",
+          name: "年代",
+          init: "", // 默认值：全部（空字符串）
+          value: [
+            { name: "全部", value: "" },
+            { name: "2026", value: "2026" },
+            { name: "2025", value: "2025" },
+            { name: "2024", value: "2024" },
+            { name: "2023", value: "2023" },
+            { name: "2022", value: "2022" },
+            { name: "2021", value: "2021" },
+            { name: "2020", value: "2020" },
+            { name: "2019", value: "2019" },
+            { name: "2020年代", value: "2020年代" },
+            { name: "2010年代", value: "2010年代" },
+            { name: "2000年代", value: "2000年代" },
+            { name: "90年代", value: "90年代" },
+            { name: "80年代", value: "80年代" },
+            { name: "70年代", value: "70年代" },
+            { name: "60年代", value: "60年代" },
+            { name: "更早", value: "更早" },
+          ],
+        },
         // 平台筛选器（和电视剧筛选一样）
         {
           key: "platform",

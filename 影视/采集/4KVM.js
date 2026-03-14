@@ -1,4 +1,5 @@
 // @name 4KVM
+// @version 1.0.1
 /**
 * ============================================================================
 * 4KVM
@@ -808,11 +809,10 @@ async function detail(params) {
 
         if (scrapeCandidates.length > 0) {
             try {
-                const sourceId = `spider_source_${await OmniBox.getSourceId()}_${videoIdForScrape}`;
-                const scrapingResult = await OmniBox.processScraping(sourceId, vod.vod_name || "", vod.vod_name || "", scrapeCandidates);
+                const scrapingResult = await OmniBox.processScraping(videoIdForScrape, vod.vod_name || "", vod.vod_name || "", scrapeCandidates);
                 OmniBox.log("info", `[4KVM-DEBUG] 刮削处理完成,结果: ${JSON.stringify(scrapingResult || {}).substring(0, 200)}`);
 
-                const metadata = await OmniBox.getScrapeMetadata(sourceId);
+                const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
                 scrapeData = metadata?.scrapeData || null;
                 videoMappings = metadata?.videoMappings || [];
                 scrapeType = metadata?.scrapeType || "";
@@ -963,11 +963,8 @@ async function play(params) {
         const videoIdFromParam = params.vodId ? String(params.vodId) : "";
         const videoIdFromMeta = playMeta?.sid ? String(playMeta.sid) : "";
         const videoIdForScrape = videoIdFromParam || videoIdFromMeta;
-        const sourceId = videoIdForScrape
-            ? `spider_source_${await OmniBox.getSourceId()}_${videoIdForScrape}`
-            : "";
-        if (sourceId) {
-            const metadata = await OmniBox.getScrapeMetadata(sourceId);
+        if (videoIdForScrape) {
+            const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
             if (metadata && metadata.scrapeData) {
                 const mapping = (metadata.videoMappings || []).find((m) => m?.fileId === playMeta?.fid);
                 scrapedDanmuFileName = buildScrapedDanmuFileName(

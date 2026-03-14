@@ -1,4 +1,5 @@
 // @name TVB云播[广]
+// @version 1.0.1
 /**
  * OmniBox 爬虫脚本 - TVB云播[广]
  *
@@ -402,11 +403,11 @@ async function getDetailById(id) {
 
     if (scrapeCandidates.length > 0) {
       try {
-        const sourceId = `spider_source_${await OmniBox.getSourceId()}_${String(id || "")}`;
-        const scrapingResult = await OmniBox.processScraping(sourceId, vod.vod_name || "", vod.vod_name || "", scrapeCandidates);
+        const videoIdForScrape = String(id || "");
+        const scrapingResult = await OmniBox.processScraping(videoIdForScrape, vod.vod_name || "", vod.vod_name || "", scrapeCandidates);
         OmniBox.log("info", `[TVB云播] 刮削处理完成,结果: ${JSON.stringify(scrapingResult || {}).substring(0, 200)}`);
 
-        const metadata = await OmniBox.getScrapeMetadata(sourceId);
+        const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
         scrapeData = metadata?.scrapeData || null;
         videoMappings = metadata?.videoMappings || [];
         scrapeType = metadata?.scrapeType || "";
@@ -566,11 +567,8 @@ async function play(params) {
 
   try {
     const sourceVideoId = String(params?.vodId || playMeta?.sid || "");
-    const sourceId = sourceVideoId
-      ? `spider_source_${await OmniBox.getSourceId()}_${sourceVideoId}`
-      : "";
-    if (sourceId) {
-      const metadata = await OmniBox.getScrapeMetadata(sourceId);
+    if (sourceVideoId) {
+      const metadata = await OmniBox.getScrapeMetadata(sourceVideoId);
       if (metadata && metadata.scrapeData) {
         const mapping = (metadata.videoMappings || []).find((m) => m?.fileId === playMeta?.fid);
         scrapedDanmuFileName = buildScrapedDanmuFileName(

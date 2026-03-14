@@ -1,5 +1,5 @@
 // @name 玩偶
-// @author 
+// @author
 // @description 刮削：支持，弹幕：支持，播放记录：支持
 // @dependencies: axios, cheerio
 // @version 1.0.0
@@ -24,26 +24,32 @@ const https = require("https");
 const fs = require("fs");
 
 // ==================== 配置区域 ====================
-// 网站地址(可以通过环境变量配置，支持多个域名用;分割) 
+// 网站地址(可以通过环境变量配置，支持多个域名用;分割)
 const WEB_SITE_CONFIG = process.env.WEB_SITE_WOGG || "https://wogg.xxooo.cf;https://wogg.333232.xyz;https://www.wogg.net;https://wogg4k.333232.xyz;";
-const WEB_SITES = WEB_SITE_CONFIG.split(';').map(url => url.trim()).filter(url => url);
+const WEB_SITES = WEB_SITE_CONFIG.split(";")
+  .map((url) => url.trim())
+  .filter((url) => url);
 // 筛选配置：环境变量 -> 本地文件 -> 远程链接
 const FILTERS_PATH_REMOTE = "https://gh-proxy.org/https://github.com/Silent1566/OmniBox-Spider/raw/refs/heads/main/%E9%85%8D%E7%BD%AE/%E7%AD%9B%E9%80%89/wogg.json";
 const FILTERS_PATH_LOCAL = "/app/static/js/wogg.json";
-const FILTERS_WOGG = process.env.FILTERS_WOGG || (fs.existsSync(FILTERS_PATH_LOCAL)
-  ? fs.readFileSync(FILTERS_PATH_LOCAL, "utf-8")
-  : FILTERS_PATH_REMOTE);
+const FILTERS_WOGG = process.env.FILTERS_WOGG || (fs.existsSync(FILTERS_PATH_LOCAL) ? fs.readFileSync(FILTERS_PATH_LOCAL, "utf-8") : FILTERS_PATH_REMOTE);
 // 读取环境变量：支持多个网盘类型，用分号分割
-const DRIVE_TYPE_CONFIG = (process.env.DRIVE_TYPE_CONFIG || "quark;uc").split(';').map(t => t.trim()).filter(t => t);
+const DRIVE_TYPE_CONFIG = (process.env.DRIVE_TYPE_CONFIG || "quark;uc")
+  .split(";")
+  .map((t) => t.trim())
+  .filter((t) => t);
 // 读取环境变量：线路名称和顺序，用分号分割
-const SOURCE_NAMES_CONFIG = (process.env.SOURCE_NAMES_CONFIG || "本地代理;服务端代理;直连").split(';').map(s => s.trim()).filter(s => s);
-// ==================== 配置区域结束 ====================  
+const SOURCE_NAMES_CONFIG = (process.env.SOURCE_NAMES_CONFIG || "本地代理;服务端代理;直连")
+  .split(";")
+  .map((s) => s.trim())
+  .filter((s) => s);
+// ==================== 配置区域结束 ====================
 
 if (WEB_SITES.length === 0) {
   throw new Error("WEB_SITE 配置不能为空");
 }
 
-OmniBox.log("info", `配置了 ${WEB_SITES.length} 个域名: ${WEB_SITES.join(', ')}`);
+OmniBox.log("info", `配置了 ${WEB_SITES.length} 个域名: ${WEB_SITES.join(", ")}`);
 
 const INSECURE_HTTPS_AGENT = new https.Agent({
   rejectUnauthorized: false,
@@ -79,12 +85,7 @@ function isBlockedHtml(body = "") {
     return false;
   }
   const lower = body.toLowerCase();
-  return (
-    lower.includes("just a moment") ||
-    lower.includes("cf-browser-verification") ||
-    lower.includes("captcha") ||
-    lower.includes("访问验证")
-  );
+  return lower.includes("just a moment") || lower.includes("cf-browser-verification") || lower.includes("captcha") || lower.includes("访问验证");
 }
 
 /**
@@ -99,7 +100,7 @@ async function requestWithFailover(path, options = {}) {
 
   for (let i = 0; i < WEB_SITES.length; i++) {
     const baseUrl = removeTrailingSlash(WEB_SITES[i]);
-    const fullUrl = path.startsWith('http') ? path : baseUrl + path;
+    const fullUrl = path.startsWith("http") ? path : baseUrl + path;
 
     try {
       OmniBox.log("info", `尝试请求域名 ${i + 1}/${WEB_SITES.length}: ${fullUrl}, timeout=${options.timeout ?? perDomainTimeout}ms`);
@@ -157,14 +158,14 @@ async function getDynamicFilters() {
   const defaultFilters = {};
 
   if (config) {
-    if (config.startsWith('http')) {
+    if (config.startsWith("http")) {
       try {
         OmniBox.log("info", `正在从远程链接读取过滤器: ${config}`);
         const response = await httpRequest(config, {
           method: "GET",
           headers: {
-            "Accept": "application/json; charset=utf-8"
-          }
+            Accept: "application/json; charset=utf-8",
+          },
         });
         if (response.statusCode === 200 && response.body) {
           const rawFilters = JSON.parse(response.body);
@@ -172,14 +173,14 @@ async function getDynamicFilters() {
           // 遍历过滤器对象，进行属性映射转换
           const formattedFilters = {};
           for (const typeId in rawFilters) {
-            formattedFilters[typeId] = rawFilters[typeId].map(group => ({
+            formattedFilters[typeId] = rawFilters[typeId].map((group) => ({
               key: group.key,
               name: group.n || group.name, // 将 n 转换为 name [1]
               init: group.init,
-              value: (group.v || group.value || []).map(item => ({
+              value: (group.v || group.value || []).map((item) => ({
                 name: item.n || item.name, // 将子项的 n 转换为 name [1]
-                value: item.v || item.value // 将子项的 v 转换为 value [1]
-              }))
+                value: item.v || item.value, // 将子项的 v 转换为 value [1]
+              })),
             }));
           }
           return formattedFilters;
@@ -256,7 +257,7 @@ async function getAllVideoFiles(shareURL, files, errors = []) {
           path: file.name || file.fid,
           fid: file.fid,
           message: error.message,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
         errors.push(errorInfo);
         OmniBox.log("warn", `获取子目录失败: ${JSON.stringify(errorInfo)}`);
@@ -310,7 +311,7 @@ async function home(params) {
 
     try {
       // 使用容灾请求
-      const { response, baseUrl } = await requestWithFailover('/');
+      const { response, baseUrl } = await requestWithFailover("/");
 
       if (response.statusCode === 200 && response.body) {
         const $ = cheerio.load(response.body);
@@ -404,11 +405,11 @@ async function category(params) {
     }
 
     // 构建请求 URL
-    const area = filters?.area || '';
-    const sort = filters?.sort || '';
-    const cls = filters?.class || '';
-    const letter = filters?.letter || '';
-    const year = filters?.year || '';
+    const area = filters?.area || "";
+    const sort = filters?.sort || "";
+    const cls = filters?.class || "";
+    const letter = filters?.letter || "";
+    const year = filters?.year || "";
 
     const url = `/vodshow/${categoryId}-${area}-${sort}-${cls}--${letter}---${page}---${year}.html`;
 
@@ -502,7 +503,6 @@ function buildScrapedFileName(scrapeData, mapping, originalFileName) {
   // 如果没有找到对应的剧集信息,返回原始文件名
   return originalFileName;
 }
-
 
 /**
  * 获取视频详情
@@ -674,9 +674,8 @@ async function detail(params) {
           allVideoFiles,
           scrapeData,
           videoMappings,
-          scrapeType
+          scrapeType,
         };
-
       } catch (error) {
         OmniBox.log("error", `处理网盘链接失败: ${shareURL}, 错误: ${error.message}`);
         return null;
@@ -1080,7 +1079,7 @@ async function play(params, context) {
           title: title,
           pic: pic,
           episode: playId,
-          sourceId: sourceId,
+          sourceId: shareURL,
           episodeNumber: episodeNumber,
           episodeName: episodeName,
         });

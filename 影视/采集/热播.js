@@ -1,7 +1,7 @@
 // @name 热播
 // @author 
 // @description 刮削：支持，弹幕：支持，嗅探：支持
-// @version 1.0.0
+// @version 1.0.1
 // @downloadURL https://gh-proxy.org/https://github.com/Silent1566/OmniBox-Spider/raw/refs/heads/main/影视/采集/热播.js
 /**
  * OmniBox 爬虫脚本 - 热播（APP 接口）
@@ -569,11 +569,10 @@ async function detail(params) {
 
       if (scrapeCandidates.length > 0) {
         try {
-          const sourceId = `spider_source_${await OmniBox.getSourceId()}_${videoIdForScrape}`;
-          const scrapingResult = await OmniBox.processScraping(sourceId, v.vod_name || "", v.vod_name || "", scrapeCandidates);
+          const scrapingResult = await OmniBox.processScraping(videoIdForScrape, v.vod_name || "", v.vod_name || "", scrapeCandidates);
           OmniBox.log("info", `[热播] 刮削处理完成,结果: ${JSON.stringify(scrapingResult || {}).substring(0, 200)}`);
 
-          const metadata = await OmniBox.getScrapeMetadata(sourceId);
+          const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
           scrapeData = metadata?.scrapeData || null;
           videoMappings = metadata?.videoMappings || [];
           scrapeType = metadata?.scrapeType || "";
@@ -712,12 +711,9 @@ async function play(params) {
       const videoIdFromParam = params.vodId ? String(params.vodId) : "";
       const videoIdFromMeta = ids.sid ? String(ids.sid) : "";
       const videoIdForScrape = videoIdFromParam || videoIdFromMeta;
-      const sourceIdByVod = videoIdForScrape
-        ? `spider_source_${await OmniBox.getSourceId()}_${videoIdForScrape}`
-        : "";
 
-      if (sourceIdByVod) {
-        const metadata = await OmniBox.getScrapeMetadata(sourceIdByVod);
+      if (videoIdForScrape) {
+        const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
         if (metadata && metadata.scrapeData) {
           const mapping = (metadata.videoMappings || []).find((m) => m?.fileId === ids.fid);
           scrapedDanmuFileName = buildScrapedDanmuFileName(

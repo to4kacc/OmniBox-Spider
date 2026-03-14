@@ -3,6 +3,7 @@
 * 樱花动漫资源 - OmniBox 爬虫脚本（添加弹幕支持）
 * ============================================================================
 */
+// @version 1.0.1
 const axios = require("axios");
 const http = require("http");
 const https = require("https");
@@ -555,10 +556,9 @@ async function detail(params) {
 
         if (scrapeCandidates.length > 0) {
             try {
-                const sourceId = `spider_source_${await OmniBox.getSourceId()}_${videoIdForScrape}`;
-                const scrapingResult = await OmniBox.processScraping(sourceId, vod_name || "", vod_name || "", scrapeCandidates);
+                const scrapingResult = await OmniBox.processScraping(videoIdForScrape, vod_name || "", vod_name || "", scrapeCandidates);
                 OmniBox.log("info", `[樱花动漫-DEBUG] 刮削处理完成,结果: ${JSON.stringify(scrapingResult || {}).substring(0, 200)}`);
-                const metadata = await OmniBox.getScrapeMetadata(sourceId);
+                const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
                 scrapeData = metadata?.scrapeData || null;
                 videoMappings = metadata?.videoMappings || [];
                 scrapeType = metadata?.scrapeType || "";
@@ -731,11 +731,8 @@ async function play(params) {
         const videoIdFromParam = params.vodId ? String(params.vodId) : "";
         const videoIdFromMeta = playMeta?.sid ? String(playMeta.sid) : "";
         const videoIdForScrape = videoIdFromParam || videoIdFromMeta;
-        const sourceId = videoIdForScrape
-            ? `spider_source_${await OmniBox.getSourceId()}_${videoIdForScrape}`
-            : "";
-        if (sourceId) {
-            const metadata = await OmniBox.getScrapeMetadata(sourceId);
+        if (videoIdForScrape) {
+            const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
             if (metadata && metadata.scrapeData) {
                 const mapping = (metadata.videoMappings || []).find((m) => m?.fileId === playMeta?.fid);
                 scrapedDanmuFileName = buildScrapedDanmuFileName(

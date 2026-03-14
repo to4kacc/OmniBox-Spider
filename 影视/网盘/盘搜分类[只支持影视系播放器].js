@@ -1,7 +1,7 @@
 // @name 盘搜分组
 // @author 
 // @description 刮削：支持，弹幕：支持，嗅探：支持
-// @version 1.0.0
+// @version 1.0.2
 // @downloadURL https://gh-proxy.org/https://github.com/Silent1566/OmniBox-Spider/raw/refs/heads/main/影视/网盘/盘搜分组.js
 
 /**
@@ -489,11 +489,6 @@ function buildScrapedFileName(scrapeData, mapping, originalFileName) {
 */
 async function home(params) {
     try {
-        const sourceId = await OmniBox.getSourceId();
-        if (sourceId) {
-            OmniBox.log("info", `当前爬虫源ID: ${sourceId}`);
-        }
-
         const classes = [
             {
                 type_id: "history",
@@ -808,7 +803,6 @@ async function detail(params) {
 
         let scrapingSuccess = false;
 
-        const sourceId = `spider_source_${await OmniBox.getSourceId()}_${shareURL}`;
         try {
             const videoFilesForScraping = allVideoFiles.map((file) => {
                 const fileId = file.fid || file.file_id || "";
@@ -820,7 +814,7 @@ async function detail(params) {
                 };
             });
 
-            const scrapingResult = await OmniBox.processScraping(sourceId, keyword, note, videoFilesForScraping);
+            const scrapingResult = await OmniBox.processScraping(shareURL, keyword, note, videoFilesForScraping);
             scrapingSuccess = true;
         } catch (error) {
             OmniBox.log("error", `刮削处理失败: ${error.message}`);
@@ -829,7 +823,7 @@ async function detail(params) {
         let scrapeData = null;
         let videoMappings = [];
         try {
-            const metadata = await OmniBox.getScrapeMetadata(sourceId);
+            const metadata = await OmniBox.getScrapeMetadata(shareURL);
 
             scrapeData = metadata.scrapeData || null;
             videoMappings = metadata.videoMappings || [];
@@ -1022,8 +1016,7 @@ async function play(params) {
         let episodeNumber = null;
         let episodeName = params.episodeName || "";
         try {
-            const resourceId = `spider_source_${await OmniBox.getSourceId()}_${shareURL}`;
-            const metadata = await OmniBox.getScrapeMetadata(resourceId);
+            const metadata = await OmniBox.getScrapeMetadata(shareURL);
             if (metadata && metadata.scrapeData && metadata.videoMappings) {
                 const formattedFileId = fileId ? `${shareURL}|${fileId}` : "";
 
@@ -1078,9 +1071,8 @@ async function play(params) {
         }
 
         try {
-            const sourceId = await OmniBox.getSourceId();
-            if (sourceId) {
-                const vodId = params.vodId || shareURL;
+            const vodId = params.vodId || shareURL;
+            if (vodId) {
                 const title = params.title || scrapeTitle || shareURL;
                 const pic = params.pic || scrapePic || "";
 
@@ -1089,7 +1081,7 @@ async function play(params) {
                     title: title,
                     pic: pic,
                     episode: playId,
-                    sourceId: sourceId,
+                    sourceId: shareURL,
                     episodeNumber: episodeNumber,
                     episodeName: episodeName,
                 });

@@ -1,7 +1,7 @@
 // @name 乐兔
 // @author 
 // @description 刮削：支持，弹幕：支持，嗅探：支持，广告：有
-// @version 1.0.0
+// @version 1.0.1
 // @downloadURL https://xget.xi-xu.me/gh/Silent1566/OmniBox-Spider/raw/refs/heads/main/影视/采集/乐兔.js
 /**
  * 质量较差不建议加入
@@ -393,11 +393,10 @@ async function getDetailById(id) {
 
     if (scrapeCandidates.length > 0) {
       try {
-        const sourceId = `spider_source_${await OmniBox.getSourceId()}_${videoIdForScrape}`;
-        const scrapingResult = await OmniBox.processScraping(sourceId, vodName || "", vodName || "", scrapeCandidates);
+        const scrapingResult = await OmniBox.processScraping(videoIdForScrape, vodName || "", vodName || "", scrapeCandidates);
         OmniBox.log("info", `[乐兔] 刮削处理完成,结果: ${JSON.stringify(scrapingResult || {}).substring(0, 200)}`);
 
-        const metadata = await OmniBox.getScrapeMetadata(sourceId);
+        const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
         scrapeData = metadata?.scrapeData || null;
         videoMappings = metadata?.videoMappings || [];
         scrapeType = metadata?.scrapeType || "";
@@ -488,9 +487,8 @@ async function getPlay(playId, vodName = "", episodeName = "", vodId = "") {
 
     try {
       const sourceVideoId = String(vodId || playMeta.sid || "");
-      const sourceId = sourceVideoId ? `spider_source_${await OmniBox.getSourceId()}_${sourceVideoId}` : "";
-      if (sourceId) {
-        const metadata = await OmniBox.getScrapeMetadata(sourceId);
+      if (sourceVideoId) {
+        const metadata = await OmniBox.getScrapeMetadata(sourceVideoId);
         if (metadata && metadata.scrapeData) {
           const mapping = (metadata.videoMappings || []).find((m) => m?.fileId === playMeta?.fid);
           scrapedDanmuFileName = buildScrapedDanmuFileName(

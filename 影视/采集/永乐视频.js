@@ -3,6 +3,7 @@
  * 永乐视频 - OmniBox 爬虫脚本 (增强版)
  * ============================================================================
  */
+// @version 1.0.1
 const axios = require("axios");
 const cheerio = require("cheerio");
 const https = require("https");
@@ -888,11 +889,10 @@ async function detail(params) {
 
         if (scrapeCandidates.length > 0) {
             try {
-                const sourceId = `spider_source_${await OmniBox.getSourceId()}_${videoIdForScrape}`;
-                const scrapingResult = await OmniBox.processScraping(sourceId, title || '', title || '', scrapeCandidates);
+                const scrapingResult = await OmniBox.processScraping(videoIdForScrape, title || '', title || '', scrapeCandidates);
                 OmniBox.log('info', `[永乐视频-DEBUG] 刮削处理完成,结果: ${JSON.stringify(scrapingResult || {}).substring(0, 200)}`);
 
-                const metadata = await OmniBox.getScrapeMetadata(sourceId);
+                const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
                 scrapeData = metadata?.scrapeData || null;
                 videoMappings = metadata?.videoMappings || [];
                 scrapeType = metadata?.scrapeType || '';
@@ -1023,11 +1023,8 @@ async function play(params) {
             const videoIdFromParam = params.vodId ? String(params.vodId) : '';
             const videoIdFromMeta = playMeta?.sid ? String(playMeta.sid) : '';
             const videoIdForScrape = videoIdFromParam || videoIdFromMeta;
-            const sourceId = videoIdForScrape
-                ? `spider_source_${await OmniBox.getSourceId()}_${videoIdForScrape}`
-                : '';
-            if (sourceId) {
-                await OmniBox.getScrapeMetadata(sourceId);
+            if (videoIdForScrape) {
+                await OmniBox.getScrapeMetadata(videoIdForScrape);
             }
         } catch (error) {
             logInfo(`读取刮削元数据失败: ${error.message}`);

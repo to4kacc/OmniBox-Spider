@@ -1,7 +1,7 @@
 // @name 电影天堂
 // @author 
 // @description 刮削：支持，弹幕：支持，嗅探：支持
-// @version 1.0.0
+// @version 1.0.1
 // @downloadURL https://xget.xi-xu.me/gh/Silent1566/OmniBox-Spider/raw/refs/heads/main/%E5%BD%B1%E8%A7%86/%E9%87%87%E9%9B%86/%E7%94%B5%E5%BD%B1%E5%A4%A9%E5%A0%82.js
 const OmniBox = require("omnibox_sdk");
 
@@ -724,11 +724,11 @@ async function detail(params) {
 
             if (sourceCandidates.length > 0) {
                 try {
-                    const sourceId = `spider_source_${await OmniBox.getSourceId()}_${String(vod.vod_id || videoId)}`;
-                    const scrapingResult = await OmniBox.processScraping(sourceId, vod.vod_name || "", vod.vod_name || "", sourceCandidates);
+                    const videoIdForScrape = String(vod.vod_id || videoId);
+                    const scrapingResult = await OmniBox.processScraping(videoIdForScrape, vod.vod_name || "", vod.vod_name || "", sourceCandidates);
                     OmniBox.log("info", `刮削处理完成,结果: ${JSON.stringify(scrapingResult || {}).substring(0, 200)}`);
 
-                    const metadata = await OmniBox.getScrapeMetadata(sourceId);
+                    const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
                     const scrapeData = metadata?.scrapeData || null;
                     const videoMappings = metadata?.videoMappings || [];
 
@@ -955,11 +955,8 @@ async function play(params) {
         let scrapedDanmuFileName = "";
         try {
             const sourceVideoId = params.vodId || videoId || (rawPlayId.includes("|||") ? (decodeMeta(rawPlayId.split("|||")[1] || "").sid || "") : "");
-            const sourceId = sourceVideoId
-                ? `spider_source_${await OmniBox.getSourceId()}_${String(sourceVideoId)}`
-                : "";
-            if (sourceId) {
-                const metadata = await OmniBox.getScrapeMetadata(sourceId);
+            if (sourceVideoId) {
+                const metadata = await OmniBox.getScrapeMetadata(String(sourceVideoId));
                 if (metadata && metadata.scrapeData) {
                     const meta = rawPlayId.includes("|||") ? decodeMeta(rawPlayId.split("|||")[1] || "") : {};
                     const mapping = (metadata.videoMappings || []).find((m) => m?.fileId === meta.fid);

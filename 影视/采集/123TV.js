@@ -1,4 +1,5 @@
 // @name 123TV
+// @version 1.0.1
 /**
  * ============================================================================
  * 123TV
@@ -537,16 +538,15 @@ async function detail(params) {
                 }
 
                 if (scrapeCandidates.length > 0 && vod.vod_name) {
-                    const sourceId = `spider_source_${await OmniBox.getSourceId()}_${videoId}`;
                     const scrapingResult = await OmniBox.processScraping(
-                        sourceId,
+                        videoId,
                         vod.vod_name,
                         vod.vod_name,
                         scrapeCandidates
                     );
                     logInfo(`刮削处理完成,结果: ${JSON.stringify(scrapingResult).substring(0, 200)}`);
 
-                    const metadata = await OmniBox.getScrapeMetadata(sourceId);
+                    const metadata = await OmniBox.getScrapeMetadata(videoId);
                     const scrapeData = metadata && metadata.data;
 
                     if (scrapeData) {
@@ -622,8 +622,7 @@ async function play(params) {
 
     try {
         if (vodId) {
-            const sourceId = `spider_source_${await OmniBox.getSourceId()}_${vodId}`;
-            const metadata = await OmniBox.getScrapeMetadata(sourceId);
+            const metadata = await OmniBox.getScrapeMetadata(vodId);
             logInfo('播放阶段读取刮削元数据', {
                 vodId,
                 hit: !!(metadata && metadata.data),

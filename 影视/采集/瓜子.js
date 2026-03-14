@@ -1,8 +1,8 @@
 // @name 瓜子APP
 // @author 
 // @description 刮削：支持，弹幕：支持，嗅探：支持
+// @version 1.0.2
 // @dependencies: axios, crypto
-// @version 1.0.1
 // @downloadURL https://xget.xi-xu.me/gh/Silent1566/OmniBox-Spider/raw/refs/heads/main/%E5%BD%B1%E8%A7%86/%E9%87%87%E9%9B%86/%E7%93%9C%E5%AD%90.js
 
 /**
@@ -1006,10 +1006,10 @@ async function detail(params) {
                 if (scrapeCandidates.length > 0) {
                     try {
                         // 以视频ID作为刮削资源ID，保证同一条目下刮削结果稳定复用
-                        const sourceId = `spider_source_${await OmniBox.getSourceId()}_${videoId}`;
-                        const scrapingResult = await OmniBox.processScraping(sourceId, vod.vod_name || '', vod.vod_name || '', scrapeCandidates);
+                        
+                        const scrapingResult = await OmniBox.processScraping(videoId, vod.vod_name || '', vod.vod_name || '', scrapeCandidates);
                         OmniBox.log('info', `[瓜子APP] 刮削处理完成,结果: ${JSON.stringify(scrapingResult || {}).substring(0, 200)}`);
-                        const metadata = await OmniBox.getScrapeMetadata(sourceId);
+                        const metadata = await OmniBox.getScrapeMetadata(videoId);
                         scrapeData = metadata?.scrapeData || null;
                         videoMappings = metadata?.videoMappings || [];
                         logInfo('刮削完成', { vodId, mappingCount: videoMappings.length, hasScrapeData: !!scrapeData });
@@ -1112,9 +1112,7 @@ async function play(params) {
             const videoIdFromParam = params.vodId ? String(params.vodId) : '';
             const videoIdFromMeta = playMeta?.sid ? String(playMeta.sid).split('#')[0] : '';
             const videoId = videoIdFromParam || videoIdFromMeta;
-            const sourceIdByVod = videoId
-                ? `spider_source_${await OmniBox.getSourceId()}_${videoId}`
-                : '';
+            const sourceIdByVod = videoId;
 
             let metadata = null;
             if (sourceIdByVod) {

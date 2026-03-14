@@ -1,7 +1,7 @@
 // @name 哇哇影视
 // @author 
 // @description 刮削：支持，弹幕：支持，嗅探：支持
-// @version 1.0.0
+// @version 1.0.1
 // @downloadURL https://gh-proxy.org/https://github.com/Silent1566/OmniBox-Spider/raw/refs/heads/main/影视/采集/哇哇影视.js
 
 const crypto = require('crypto');
@@ -530,10 +530,10 @@ async function detail(params) {
 
     if (scrapeCandidates.length > 0) {
         try {
-            const sourceId = `spider_source_${await OmniBox.getSourceId()}_${String(id || '')}`;
-            const scrapingResult = await OmniBox.processScraping(sourceId, item.vod_name || '', item.vod_name || '', scrapeCandidates);
+            const videoIdForScrape = String(id || '');
+            const scrapingResult = await OmniBox.processScraping(videoIdForScrape, item.vod_name || '', item.vod_name || '', scrapeCandidates);
             OmniBox.log('info', `[哇哇影视] 刮削处理完成,结果: ${JSON.stringify(scrapingResult || {}).substring(0, 200)}`);
-            const metadata = await OmniBox.getScrapeMetadata(sourceId);
+            const metadata = await OmniBox.getScrapeMetadata(videoIdForScrape);
             scrapeData = metadata?.scrapeData || null;
             videoMappings = metadata?.videoMappings || [];
             scrapeType = metadata?.scrapeType || '';
@@ -626,13 +626,10 @@ async function play(params) {
 
         try {
             const sourceVideoId = String(params.vodId || playData.sid || '');
-            const sourceId = sourceVideoId
-                ? `spider_source_${await OmniBox.getSourceId()}_${sourceVideoId}`
-                : '';
-            if (sourceId) {
-                const metadata = await OmniBox.getScrapeMetadata(sourceId);
+            if (sourceVideoId) {
+                const metadata = await OmniBox.getScrapeMetadata(sourceVideoId);
                 logInfo("[播放解析] 刮削元数据加载", {
-                    sourceId,
+                    sourceId: sourceVideoId,
                     hasScrapeData: !!metadata?.scrapeData,
                     mappingCount: (metadata?.videoMappings || []).length,
                     scrapeType: metadata?.scrapeType || "",

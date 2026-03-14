@@ -1,4 +1,5 @@
 // @name 玩偶系模板
+// @version 1.0.1
 // 引入 OmniBox SDK
 const OmniBox = require("omnibox_sdk");
 // 引入 cheerio(用于 HTML 解析)
@@ -680,8 +681,6 @@ async function detail(params) {
 
         // 刮削处理
         let scrapingSuccess = false;
-        // 以视频ID作为刮削资源ID，保证同一条目下刮削结果稳定复用
-        const sourceId = `spider_source_${await OmniBox.getSourceId()}_${videoId}`;
 
         try {
           OmniBox.log("info", `开始执行刮削处理,资源名: ${vodName}, 视频文件数: ${allVideoFiles.length}`);
@@ -698,7 +697,7 @@ async function detail(params) {
 
           OmniBox.log("info", `文件ID格式转换完成,示例: ${videoFilesForScraping[0]?.fid || "N/A"}`);
 
-          const scrapingResult = await OmniBox.processScraping(sourceId, vodName, vodName, videoFilesForScraping);
+          const scrapingResult = await OmniBox.processScraping(videoId, vodName, vodName, videoFilesForScraping);
           OmniBox.log("info", `刮削处理完成,结果: ${JSON.stringify(scrapingResult).substring(0, 200)}`);
           scrapingSuccess = true;
         } catch (error) {
@@ -714,8 +713,8 @@ async function detail(params) {
         let scrapeType = "";
 
         try {
-          OmniBox.log("info", `开始获取元数据,resourceId: ${sourceId}`);
-          const metadata = await OmniBox.getScrapeMetadata(sourceId);
+          OmniBox.log("info", `开始获取元数据,resourceId: ${videoId}`);
+          const metadata = await OmniBox.getScrapeMetadata(videoId);
           OmniBox.log("info", `获取元数据响应: ${JSON.stringify(metadata).substring(0, 500)}`);
 
           scrapeData = metadata.scrapeData || null;
@@ -1060,17 +1059,12 @@ async function play(params) {
 
     try {
       // 优先使用视频ID维度读取刮削元数据，与 detail 阶段保持一致
-      const sourceIdByVod = params.vodId
-        ? `spider_source_${await OmniBox.getSourceId()}_${params.vodId}`
-        : "";
-      const sourceIdByShare = `spider_source_${await OmniBox.getSourceId()}_${shareURL}`;
-
       let metadata = null;
-      if (sourceIdByVod) {
-        metadata = await OmniBox.getScrapeMetadata(sourceIdByVod);
+      if (params.vodId) {
+        metadata = await OmniBox.getScrapeMetadata(params.vodId);
       }
       if (!metadata || (!metadata.scrapeData && !metadata.videoMappings)) {
-        metadata = await OmniBox.getScrapeMetadata(sourceIdByShare);
+        metadata = await OmniBox.getScrapeMetadata(shareURL);
       }
 
       if (metadata && metadata.scrapeData && metadata.videoMappings) {
@@ -1140,9 +1134,8 @@ async function play(params) {
     }
 
     try {
-      const sourceId = await OmniBox.getSourceId();
-      if (sourceId) {
-        const vodId = params.vodId || shareURL;
+      const vodId = params.vodId || shareURL;
+      if (vodId) {
         const title = params.title || scrapeTitle || shareURL;
         const pic = params.pic || scrapePic || "";
 
@@ -1151,7 +1144,7 @@ async function play(params) {
           title: title,
           pic: pic,
           episode: playId,
-          sourceId: sourceId,
+          sourceId: shareURL,
           episodeNumber: episodeNumber,
           episodeName: episodeName,
         });

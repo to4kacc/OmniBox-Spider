@@ -2,7 +2,7 @@
 // @push 1
 // @author lampon
 // @description 推送脚本
-// @version 1.0.0
+// @version 1.0.2
 // @downloadURL https://xget.xi-xu.me/gh/Silent1566/OmniBox-Spider/raw/refs/heads/main/模板/JavaScript/推送脚本.js
 
 const OmniBox = require("omnibox_sdk");
@@ -456,9 +456,8 @@ async function play(params) {
     let episodeNumber = null;
     let episodeName = params.episodeName || "";
     try {
-      const resourceId = `spider_source_${await OmniBox.getSourceId()}_${shareURL}`;
-      // 使用新的通用元数据API，shareURL作为resourceId
-      const metadata = await OmniBox.getScrapeMetadata(resourceId);
+      // 直接使用 shareURL 作为 resourceId 获取刮削元数据
+      const metadata = await OmniBox.getScrapeMetadata(shareURL);
       if (metadata && metadata.scrapeData && metadata.videoMappings) {
         // 构建用于匹配映射关系的文件ID格式：{shareURL}|${fileId}
         // 注意：playId 的格式已经是 分享链接|文件ID，所以可以直接使用 playId 来匹配
@@ -538,10 +537,9 @@ async function play(params) {
 
     // 添加观看记录（如果不存在）
     try {
-      const sourceId = await OmniBox.getSourceId();
-      if (sourceId) {
+      const vodId = params.vodId || shareURL;
+      if (vodId) {
         // 构建vodId：使用shareURL作为视频唯一标识
-        const vodId = params.vodId || shareURL;
         // 优先使用params中的标题，其次使用刮削的标题，最后使用shareURL
         const title = params.title || scrapeTitle || shareURL;
         // 优先使用params中的封面图，其次使用刮削的封面图
@@ -552,7 +550,7 @@ async function play(params) {
           title: title,
           pic: pic,
           episode: playId, // 使用playId作为剧集标识
-          sourceId: sourceId,
+          sourceId: shareURL,
           episodeNumber: episodeNumber,
           episodeName: episodeName,
         });
