@@ -2,7 +2,7 @@
 // @author OpenClaw Taizi
 // @description 刮削：支持，弹幕：支持，嗅探：支持
 // @dependencies: axios, cheerio
-// @version 1.0.1
+// @version 1.0.2
 // @downloadURL https://gh-proxy.org/https://github.com/Silent1566/OmniBox-Spider/raw/refs/heads/main/影视/采集/片库.js
 
 /**
@@ -25,6 +25,23 @@ const host = "https://pianku.pro";
 const DANMU_API = process.env.DANMU_API || "";
 const MOBILE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.1 Mobile/15E148 Safari/604.1";
 const OCR_API = "https://api.nn.ci/ocr/b64/json";
+const CATEGORY_LIST = [
+  { type_id: "1", type_name: "电影" },
+  { type_id: "2", type_name: "连续剧" },
+  { type_id: "3", type_name: "综艺" },
+  { type_id: "4", type_name: "动漫" },
+  { type_id: "30", type_name: "短剧" },
+  { type_id: "23", type_name: "情色" }
+];
+const DEFAULT_BLOCKED_CATEGORIES = ["情色"];
+const ENV_BLOCKED_CATEGORIES = String(process.env.CATEGORY_BLOCKLIST || "")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+const BLOCKED_CATEGORIES = new Set([
+  ...DEFAULT_BLOCKED_CATEGORIES.map((s) => String(s).trim().toLowerCase()),
+  ...ENV_BLOCKED_CATEGORIES
+]);
 let SESSION_CACHE = {
   cookie: null,
   expire: 0
@@ -45,6 +62,22 @@ const axiosInstance = axios.create({
 });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isCategoryBlocked = (typeId = "", typeName = "") => {
+  const id = String(typeId || "").trim().toLowerCase();
+  const name = String(typeName || "").trim().toLowerCase();
+  if (!id && !name) return false;
+  return BLOCKED_CATEGORIES.has(id) || BLOCKED_CATEGORIES.has(name);
+};
+
+const filterCategories = (categories = []) => {
+  return (categories || []).filter((item) => !isCategoryBlocked(item?.type_id, item?.type_name));
+};
+
+const getCategoryNameById = (categoryId = "") => {
+  const hit = CATEGORY_LIST.find((item) => String(item.type_id) === String(categoryId));
+  return hit?.type_name || "";
+};
 
 const logInfo = (message, data = null) => {
   const output = data ? `${message}: ${JSON.stringify(data)}` : message;
@@ -249,14 +282,7 @@ async function home(params, context) {
   const list = parseVideoList($, baseURL).slice(0, 60);
   return {
     list,
-    class: [
-      { type_id: "1", type_name: "电影" },
-      { type_id: "2", type_name: "连续剧" },
-      { type_id: "3", type_name: "综艺" },
-      { type_id: "4", type_name: "动漫" },
-      { type_id: "30", type_name: "短剧" },
-      { type_id: "23", type_name: "情色" }
-    ]
+    class: filterCategories(CATEGORY_LIST)
   };
 }
 
@@ -264,6 +290,12 @@ async function category(params, context) {
   const { categoryId, page } = params;
   const pg = parseInt(page) || 1;
   const baseURL = context?.baseURL || "";
+
+  if (isCategoryBlocked(categoryId, getCategoryNameById(categoryId))) {
+    logInfo(`分类已屏蔽: ${categoryId}`);
+    return { list: [], page: pg, pagecount: pg };
+  }
+
   const url = pg <= 1 ? `${host}/vodtype/${categoryId}.html` : `${host}/vodtype/${categoryId}-${pg}.html`;
 
   try {
