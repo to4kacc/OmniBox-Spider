@@ -2,7 +2,7 @@
 // @author lampon
 // @description
 // @dependencies axios
-// @version 1.1.10
+// @version 1.1.12
 // @downloadURL https://gh-proxy.org/https://github.com/Silent1566/OmniBox-Spider/raw/refs/heads/main/影视/网盘/影巢.js
 
 const OmniBox = require("omnibox_sdk");
@@ -57,7 +57,9 @@ const HDHIVE_UNLOCK_RATE_LIMIT_CACHE_KEY = process.env.HDHIVE_UNLOCK_RATE_LIMIT_
 const HDHIVE_API_COOLDOWN_CACHE_KEY = process.env.HDHIVE_API_COOLDOWN_CACHE_KEY || "yingchao:hdhive:api-cooldown";
 const HDHIVE_API_COOLDOWN_DEFAULT_SECONDS = Number(process.env.HDHIVE_API_COOLDOWN_DEFAULT_SECONDS || 300);
 const HDHIVE_RESOURCES_CACHE_PREFIX = process.env.HDHIVE_RESOURCES_CACHE_PREFIX || "yingchao:hdhive:resources";
-const HDHIVE_RESOURCES_CACHE_TTL_SECONDS = Number(process.env.HDHIVE_RESOURCES_CACHE_TTL_SECONDS || 300);
+const HDHIVE_RESOURCES_CACHE_TTL_SECONDS = Number(process.env.HDHIVE_RESOURCES_CACHE_TTL_SECONDS || 24 * 60 * 60);
+const HDHIVE_UNLOCK_CACHE_PREFIX = process.env.HDHIVE_UNLOCK_CACHE_PREFIX || "yingchao:hdhive:unlock";
+const HDHIVE_UNLOCK_CACHE_TTL_SECONDS = Number(process.env.HDHIVE_UNLOCK_CACHE_TTL_SECONDS || 30 * 24 * 60 * 60);
 // 读取环境变量：支持多个网盘类型，用分号分割；仅这些网盘类型启用多线路
 const DRIVE_TYPE_CONFIG = (process.env.DRIVE_TYPE_CONFIG || "quark;uc")
   .split(";")
@@ -234,6 +236,142 @@ function extractYear(dateStr) {
   const s = safeString(dateStr);
   const m = s.match(/^(\d{4})/);
   return m ? m[1] : "";
+}
+
+function buildPosterUrl(posterPath, size = TMDB_IMAGE_POSTER_SIZE) {
+  const p = safeString(posterPath).trim();
+  if (!p) return "";
+  if (/^https?:\/\//i.test(p)) return p;
+  const normalizedPath = p.startsWith("/") ? p : `/${p}`;
+  return `${TMDB_IMAGE_BASE_URL}/${size}${normalizedPath}`;
+}
+
+function takeFirstNonEmpty(...values) {
+  for (const value of values) {
+    const text = safeString(value).trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+function buildPeopleNames(items, limit = 5) {
+  if (!Array.isArray(items)) return "";
+  return items
+    .map((item) => takeFirstNonEmpty(item?.name, item?.original_name, item?.character))
+    .filter(Boolean)
+    .slice(0, limit)
+    .join(",");
+}
+
+function buildDirectorNames(crew, limit = 3) {
+  if (!Array.isArray(crew)) return "";
+  return crew
+    .filter(
+      (person) => person?.job === "Director" || person?.department === "Directing",
+    )
+    .map((person) => takeFirstNonEmpty(person?.name, person?.original_name))
+    .filter(Boolean)
+    .slice(0, limit)
+    .join(",");
+}
+
+function buildGenreNames(genres, limit = 4) {
+  if (!Array.isArray(genres)) return "";
+  return genres
+    .map((genre) => takeFirstNonEmpty(genre?.name))
+    .filter(Boolean)
+    .slice(0, limit)
+    .join("/");
+}
+
+function buildOriginNames(scrapeData, limit = 3) {
+  if (!scrapeData || typeof scrapeData !== "object") return "";
+  const countryCandidates = [
+    ...(Array.isArray(scrapeData.productionCountries)
+      ? scrapeData.productionCountries.map((item) => item?.name)
+      : []),
+    ...(Array.isArray(scrapeData.originCountry)
+      ? scrapeData.originCountry
+      : []),
+    ...(Array.isArray(scrapeData.origin_country)
+      ? scrapeData.origin_country
+      : []),
+  ];
+  return countryCandidates
+    .map((item) => safeString(item).trim())
+    .filter(Boolean)
+    .slice(0, limit)
+    .join("/");
+}
+
+function buildLanguageNames(scrapeData, limit = 3) {
+  if (!scrapeData || typeof scrapeData !== "object") return "";
+  const languageCandidates = [
+    ...(Array.isArray(scrapeData.spokenLanguages)
+      ? scrapeData.spokenLanguages.map((item) => item?.name)
+      : []),
+    ...(Array.isArray(scrapeData.spoken_languages)
+      ? scrapeData.spoken_languages.map((item) => item?.name)
+      : []),
+  ];
+  return languageCandidates
+    .map((item) => safeString(item).trim())
+    .filter(Boolean)
+    .slice(0, limit)
+    .join("/");
+}
+
+function pickScrapeDetailFields(payload = {}, scrapeData = {}, fallback = {}) {
+  const releaseDate = takeFirstNonEmpty(scrapeData?.releaseDate, scrapeData?.release_date);
+  const voteAverageRaw =
+    scrapeData?.voteAverage ?? scrapeData?.vote_average ?? fallback?.voteAverage ?? fallback?.vote_average;
+  const actors = takeFirstNonEmpty(
+    buildPeopleNames(scrapeData?.credits?.cast, 5),
+    fallback?.vod_actor,
+  );
+  const directors = takeFirstNonEmpty(
+    buildDirectorNames(scrapeData?.credits?.crew, 3),
+    fallback?.vod_director,
+  );
+  const genres = takeFirstNonEmpty(
+    buildGenreNames(scrapeData?.genres, 4),
+    safeString(fallback?.type_name),
+  );
+  const area = takeFirstNonEmpty(buildOriginNames(scrapeData, 3), fallback?.vod_area);
+  const language = takeFirstNonEmpty(
+    buildLanguageNames(scrapeData, 3),
+    fallback?.vod_lang,
+  );
+
+  let score = safeString(fallback?.vod_douban_score);
+  if (!score && voteAverageRaw !== null && voteAverageRaw !== undefined && voteAverageRaw !== "") {
+    const scoreNum = Number(voteAverageRaw);
+    if (Number.isFinite(scoreNum) && scoreNum > 0) {
+      score = scoreNum.toFixed(1);
+    }
+  }
+
+  return {
+    vodName: takeFirstNonEmpty(payload.title, scrapeData?.title, scrapeData?.name),
+    vodPic: takeFirstNonEmpty(
+      buildPosterUrl(payload.posterPath),
+      buildPosterUrl(scrapeData?.posterPath),
+      buildPosterUrl(scrapeData?.poster_path),
+      fallback?.vod_pic,
+    ),
+    vodYear: takeFirstNonEmpty(payload.year, extractYear(releaseDate), fallback?.vod_year),
+    vodContent: takeFirstNonEmpty(
+      scrapeData?.overview,
+      payload.remark,
+      fallback?.vod_content,
+    ),
+    vodActor: actors,
+    vodDirector: directors,
+    vodArea: area,
+    vodLang: language,
+    typeName: genres,
+    vodDoubanScore: score,
+  };
 }
 
 function normalizeScrapeKeyword(keyword) {
@@ -804,6 +942,68 @@ function buildHDHiveResourcesCacheKey(mediaType, tmdbId) {
   return `${HDHIVE_RESOURCES_CACHE_PREFIX}:${safeString(mediaType).toLowerCase()}:${safeString(tmdbId)}`;
 }
 
+function buildHDHiveUnlockCacheKey(slug) {
+  return `${HDHIVE_UNLOCK_CACHE_PREFIX}:${safeString(slug)}`;
+}
+
+async function getHDHiveUnlockCached(slug) {
+  const normalizedSlug = safeString(slug);
+  if (!normalizedSlug) {
+    throw new Error("HDHive unlock 缓存参数不完整");
+  }
+
+  const cacheKey = buildHDHiveUnlockCacheKey(normalizedSlug);
+  try {
+    const raw = await OmniBox.getCache(cacheKey);
+    if (raw) {
+      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+      await OmniBox.log("info", `HDHive unlock 缓存命中: slug=${normalizedSlug}`);
+      return {
+        success: true,
+        cached: true,
+        ...(parsed && typeof parsed === "object" ? parsed : {}),
+      };
+    }
+  } catch (error) {
+    await OmniBox.log(
+      "warn",
+      `HDHive unlock 读缓存失败: slug=${normalizedSlug} error=${error.message}`,
+    );
+  }
+
+  const resp = await requestHDHive("/resources/unlock", "POST", {
+    slug: normalizedSlug,
+  });
+
+  if (resp?.rateLimited) return resp;
+
+  const payload = {
+    success: resp?.success !== false,
+    data: resp?.data && typeof resp.data === "object" ? resp.data : {},
+    message: safeString(resp?.message),
+    code: safeString(resp?.code),
+  };
+
+  try {
+    await OmniBox.setCache(
+      cacheKey,
+      JSON.stringify(payload),
+      Math.max(1, toPositiveInt(HDHIVE_UNLOCK_CACHE_TTL_SECONDS, 30 * 24 * 60 * 60)),
+    );
+    await OmniBox.log("info", `HDHive unlock 已写缓存: slug=${normalizedSlug}`);
+  } catch (error) {
+    await OmniBox.log(
+      "warn",
+      `HDHive unlock 写缓存失败: slug=${normalizedSlug} error=${error.message}`,
+    );
+  }
+
+  return {
+    ...payload,
+    cached: false,
+  };
+}
+
 async function getHDHiveResourcesCached(mediaType, tmdbId) {
   const normalizedMediaType = safeString(mediaType).toLowerCase();
   const normalizedTmdbId = safeString(tmdbId);
@@ -856,7 +1056,7 @@ async function getHDHiveResourcesCached(mediaType, tmdbId) {
     await OmniBox.setCache(
       cacheKey,
       JSON.stringify(payload),
-      Math.max(1, toPositiveInt(HDHIVE_RESOURCES_CACHE_TTL_SECONDS, 300)),
+      Math.max(1, toPositiveInt(HDHIVE_RESOURCES_CACHE_TTL_SECONDS, 24 * 60 * 60)),
     );
     await OmniBox.log(
       "info",
@@ -1915,13 +2115,15 @@ async function detail(params, context) {
 
     await OmniBox.log("info", `tmdb.js detail 开始: slug=${payload.slug}`);
 
-    const unlockResp = await requestHDHive("/resources/unlock", "POST", {
-      slug: payload.slug,
-    });
+    const unlockResp = await getHDHiveUnlockCached(payload.slug);
     if (unlockResp?.rateLimited) {
       await OmniBox.log("warn", `tmdb.js detail 被限流短路: slug=${payload.slug}`);
       return { list: [] };
     }
+    await OmniBox.log(
+      "info",
+      `tmdb.js detail unlock来源: slug=${payload.slug} cached=${unlockResp?.cached === true}`,
+    );
     const shareURL = safeString(
       unlockResp?.data?.full_url || unlockResp?.data?.url,
     );
@@ -2103,12 +2305,22 @@ async function detail(params, context) {
     let tmdbOverview = payload.remark || scrapeData?.overview || "";
     let tmdbScore = "";
 
+    const detailFallbackFields = {
+      vod_pic: buildPoster(context, payload.posterPath),
+      vod_year: payload.year,
+      vod_content: payload.remark,
+      type_name: getTypeNameByMediaType(payload.mediaType || "movie"),
+      vod_remarks: safeString(unlockResp?.message || "HDHive资源"),
+    };
+
     // 尝试补齐 TMDB 元信息
     try {
       if (payload.mediaType && payload.tmdbId) {
         const tmdbDetail = await tmdbGet(
           `/${payload.mediaType}/${payload.tmdbId}`,
-          {},
+          {
+            append_to_response: "credits",
+          },
         );
         if (safeString(tmdbDetail?.title || tmdbDetail?.name)) {
           tmdbTitle = safeString(tmdbDetail?.title || tmdbDetail?.name);
@@ -2129,6 +2341,18 @@ async function detail(params, context) {
         ) {
           tmdbScore = Number(tmdbDetail.vote_average).toFixed(1);
         }
+        scrapeData = {
+          ...(scrapeData && typeof scrapeData === "object" ? scrapeData : {}),
+          ...tmdbDetail,
+          credits:
+            tmdbDetail?.credits ||
+            scrapeData?.credits ||
+            (scrapeData && typeof scrapeData === "object" ? scrapeData.credits : undefined),
+        };
+        await OmniBox.log(
+          "info",
+          `tmdb.js detail TMDB补齐成功: title=${safeString(tmdbDetail?.title || tmdbDetail?.name)}, hasCredits=${Array.isArray(tmdbDetail?.credits?.cast) || Array.isArray(tmdbDetail?.credits?.crew)}`,
+        );
       }
     } catch (e) {
       await OmniBox.log(
@@ -2137,23 +2361,47 @@ async function detail(params, context) {
       );
     }
 
+    const mergedDetailFields = pickScrapeDetailFields(
+      payload,
+      scrapeData || {},
+      {
+        ...detailFallbackFields,
+        vod_pic: tmdbPic || detailFallbackFields.vod_pic,
+        vod_year: tmdbYear || detailFallbackFields.vod_year,
+        vod_content: tmdbOverview || detailFallbackFields.vod_content,
+        vod_douban_score: tmdbScore,
+      },
+    );
+
+    await OmniBox.log(
+      "info",
+      `tmdb.js detail 元数据回填结果: title=${mergedDetailFields.vodName || ""}, actor=${mergedDetailFields.vodActor || ""}, director=${mergedDetailFields.vodDirector || ""}, area=${mergedDetailFields.vodArea || ""}, lang=${mergedDetailFields.vodLang || ""}, type=${mergedDetailFields.typeName || ""}, overviewLen=${safeString(mergedDetailFields.vodContent).length}`,
+    );
+
     const legacyPlayFields = buildLegacyPlayFields(playSources);
 
     return {
       list: [
         {
           vod_id: videoId,
-          vod_name: tmdbTitle || `资源 ${payload.slug}`,
-          vod_pic: tmdbPic,
-          type_name: getTypeNameByMediaType(payload.mediaType || "movie"),
-          vod_year: tmdbYear,
+          vod_name: mergedDetailFields.vodName || `资源 ${payload.slug}`,
+          vod_pic: mergedDetailFields.vodPic,
+          type_name:
+            mergedDetailFields.typeName ||
+            getTypeNameByMediaType(payload.mediaType || "movie"),
+          vod_year: mergedDetailFields.vodYear,
+          vod_area: mergedDetailFields.vodArea,
+          vod_lang: mergedDetailFields.vodLang,
+          vod_actor: mergedDetailFields.vodActor,
+          vod_director: mergedDetailFields.vodDirector,
           vod_remarks: safeString(unlockResp?.message || "HDHive资源"),
           vod_content:
-            tmdbOverview || `HDHive 资源，共 ${episodes.length} 个视频文件`,
+            mergedDetailFields.vodContent ||
+            `HDHive 资源，共 ${episodes.length} 个视频文件`,
           vod_play_sources: playSources,
           vod_play_from: legacyPlayFields.vod_play_from,
           vod_play_url: legacyPlayFields.vod_play_url,
-          vod_douban_score: tmdbScore,
+          vod_douban_score: mergedDetailFields.vodDoubanScore,
         },
       ],
     };
