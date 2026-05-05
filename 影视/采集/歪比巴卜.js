@@ -370,7 +370,9 @@ async function detail(params = {}) {
         playUrl.push(items.join('#'));
       });
 
-      list.push({
+      const vod = {
+        videoId: mediaId,
+        id: mediaId,
         vod_id: mediaId,
         vod_name,
         vod_pic,
@@ -383,9 +385,24 @@ async function detail(params = {}) {
         vod_content,
         vod_play_from: playFrom.join('$$$'),
         vod_play_url: playUrl.join('$$$'),
-      });
+        playFrom: playFrom,
+        playUrl: playUrl,
+        vod_play_list: playFrom.map((name, idx) => ({
+          name,
+          url: playUrl[idx] || '',
+          episodes: (groups[idx] || []).map((item) => {
+            const sep = item.indexOf('$');
+            return sep >= 0 ? { name: item.slice(0, sep), url: item.slice(sep + 1) } : { name: item, url: '' };
+          }),
+        })),
+      };
+      OmniBox.log('info', `[wbbb][detail] parsed mediaId=${mediaId}, name=${vod_name}, tabs=${playFrom.length}, groups=${groups.length}, episodeCounts=${groups.map(g => g.length).join('/')}, playFrom=${vod.vod_play_from}`);
+      if (!vod.vod_play_url) {
+        OmniBox.log('warn', `[wbbb][detail] no vod_play_url for ${mediaId}, htmlLength=${html.length}, hasVplay=${html.includes('/vplay/')}`);
+      }
+      list.push(vod);
     }
-    OmniBox.log('info', `[wbbb][detail] total items=${list.length}`);
+    OmniBox.log('info', `[wbbb][detail] total items=${list.length}, first play_from=${list[0]?.vod_play_from?.split('$$$')[0]||''}`);
     return { list };
   } catch (e) {
     OmniBox.log('error', `[wbbb][detail] error=${e.message}`);
