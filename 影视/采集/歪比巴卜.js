@@ -10,6 +10,7 @@
  * @downloadURL https://github.com/Silent1566/OmniBox-Spider/raw/main/影视/采集/歪比巴卜.js
  */
 
+const OmniBox = require('omnibox_sdk');
 const runner = require('spider_runner');
 const axios = require('axios');
 const http = require('http');
@@ -283,31 +284,38 @@ async function resolveWbbbPlayerUrl(playerToken, nextUrl, title) {
 }
 
 async function home(params = {}) {
+  OmniBox.log('info', `[wbbb][home] params=${JSON.stringify(params)}`);
   try {
     const html = await getHtml('/');
     const list = parseCards(html).slice(0, 40);
     return { class: CATS, list };
   } catch (e) {
+    OmniBox.log('error', `[wbbb][home] error=${e.message}`);
     return { class: CATS, list: [], error: e.message || String(e) };
   }
 }
 
 async function category(params = {}) {
+  OmniBox.log('info', `[wbbb][category] params=${JSON.stringify(params)}`);
   try {
     const id = params.id || params.t || params.type_id || params.categoryId || '1';
     const page = parseInt(params.page || params.pg || '1', 10) || 1;
     const path = page > 1 ? `/show/${id}--------${page}---.html` : `/show/${id}-----------.html`;
+    OmniBox.log('info', `[wbbb][category] url=${SITE.host}${path}`);
     const html = await getHtml(path);
     const list = parseCards(html);
+    OmniBox.log('info', `[wbbb][category] id=${id} page=${page} count=${list.length}`);
     const hasNext = html.includes('title="下一页"');
     return { list, page, pagecount: hasNext ? page + 1 : page, total: list.length };
   } catch (e) {
+    OmniBox.log('error', `[wbbb][category] error=${e.message}`);
     const page = parseInt(params.page || params.pg || '1', 10) || 1;
     return { list: [], page, pagecount: page, total: 0, error: e.message || String(e) };
   }
 }
 
 async function detail(params = {}) {
+  OmniBox.log('info', `[wbbb][detail] params=${JSON.stringify(params)}`);
   try {
     let ids = [];
     if (Array.isArray(params.id)) ids = params.id;
@@ -319,6 +327,7 @@ async function detail(params = {}) {
     const list = [];
     for (const rawId of ids) {
       const mediaId = String(rawId).trim();
+      OmniBox.log('info', `[wbbb][detail] fetch detail for ${mediaId}`);
       const html = await getHtml(`/detail/${mediaId}.html`);
       const vod_name = stripTags(pickMatch(html, /<h1[^>]*>([\s\S]*?)<\/h1>/, 1, ''));
       const vod_pic = absUrl(pickMatch(html, /<div class="module-item-pic">[\s\S]*?<img[^>]+data-original="([^\"]+)"/, 1, ''))
@@ -328,16 +337,16 @@ async function detail(params = {}) {
       const vod_year = stripTags(tagLinks[0] || '');
       const vod_area = stripTags(tagLinks[1] || '');
       const vod_type = cleanSlashText(tagLinks[2] || '');
-      const vod_remarks = stripTags(pickMatch(html, /<div class="module-item-note">([\s\S]*?)<\/div>/, 1, '')) || stripTags(pickMatch(html, /更新至[^<\s]+/, 0, ''));
-      const vod_director = cleanSlashText(pickMatch(html, /导演：[\s\S]*?<div[^>]*class="module-info-item-content">([\s\S]*?)<\/div>/, 1, ''));
-      const vod_actor = cleanSlashText(pickMatch(html, /主演：[\s\S]*?<div[^>]*class="module-info-item-content">([\s\S]*?)<\/div>/, 1, ''));
+      const vod_remarks = stripTags(pickMatch(html, /<div class="module-item-note">([\s\S]*?)<\/div>/, 1, '')) || stripTags(pickMatch(html, /\u66f4\u65b0\u81f3[^<\s]+/, 0, ''));
+      const vod_director = cleanSlashText(pickMatch(html, /\u5bfc\u6f14：[\s\S]*?<div[^>]*class="module-info-item-content">([\s\S]*?)<\/div>/, 1, ''));
+      const vod_actor = cleanSlashText(pickMatch(html, /\u4e3b\u6f14：[\s\S]*?<div[^>]*class="module-info-item-content">([\s\S]*?)<\/div>/, 1, ''));
 
       const tabs = parseTabs(html);
       const groups = parsePlayGroups(html);
       const playFrom = [];
       const playUrl = [];
       groups.forEach((items, idx) => {
-        const lineName = tabs[idx] || `线路${idx + 1}`;
+        const lineName = tabs[idx] || `\u7ebf\u8def${idx + 1}`;
         if (!items || !items.length) return;
         playFrom.push(lineName);
         playUrl.push(items.join('#'));
@@ -358,32 +367,39 @@ async function detail(params = {}) {
         vod_play_url: playUrl.join('$$$'),
       });
     }
+    OmniBox.log('info', `[wbbb][detail] total items=${list.length}`);
     return { list };
   } catch (e) {
+    OmniBox.log('error', `[wbbb][detail] error=${e.message}`);
     return { list: [], error: e.message || String(e) };
   }
 }
 
 async function search(params = {}) {
+  OmniBox.log('info', `[wbbb][search] params=${JSON.stringify(params)}`);
   try {
     const wd = params.wd || params.keyword || params.key || '';
     const page = parseInt(params.page || params.pg || '1', 10) || 1;
     if (!wd) return { list: [], page, pagecount: page, total: 0 };
     const path = page > 1 ? `/search/-------------.html?wd=${encodeURIComponent(wd)}&page=${page}` : `/search/-------------.html?wd=${encodeURIComponent(wd)}`;
+    OmniBox.log('info', `[wbbb][search] url=${SITE.host}${path}`);
     const html = await getHtml(path);
     const list = parseCards(html);
     return { list, page, pagecount: list.length >= 20 ? page + 1 : page, total: list.length };
   } catch (e) {
     const page = parseInt(params.page || params.pg || '1', 10) || 1;
+    OmniBox.log('error', `[wbbb][search] error=${e.message}`);
     return { list: [], page, pagecount: page, total: 0, error: e.message || String(e) };
   }
 }
 
 async function play(params = {}) {
+  OmniBox.log('info', `[wbbb][play] params=${JSON.stringify(params)}`);
   const id = params.id || params.play || params.playId || params.url;
   try {
     const html = await getHtml(id);
     const player = parsePlayer(html);
+    OmniBox.log('info', `[wbbb][play] player url=${player.url || ''} from=${player.from || ''}`);
     if (!player) return { parse: 1, jx: 1, url: id };
     const url = decodePlayUrl(player.url, player.encrypt);
     const from = String(player.from || '').trim();
